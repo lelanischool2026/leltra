@@ -41,6 +41,9 @@ export interface DailyReport {
   parent_details: string | null;
   challenges: string | null;
   created_at: string;
+  // Joined fields
+  classes?: { grade: string; stream: string };
+  profiles?: { full_name: string };
 }
 
 export interface HeadComment {
@@ -49,4 +52,6 @@ export interface HeadComment {
   headteacher_id: string;
   comment: string;
   created_at: string;
+  // Joined fields
+  profiles?: { full_name: string };
 }

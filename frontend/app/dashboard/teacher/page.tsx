@@ -74,7 +74,9 @@ export default function TeacherDashboard() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="bg-white shadow rounded-lg p-4 sm:p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          Teacher Dashboard
+        </h1>
         <p className="mt-2 text-base sm:text-lg text-gray-600">
           {myClass.grade} - {myClass.stream}
         </p>
@@ -82,7 +84,9 @@ export default function TeacherDashboard() {
 
       <div className="bg-white shadow rounded-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daily Report</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Daily Report
+          </h2>
           {!hasTodayReport() ? (
             <button
               onClick={() => router.push("/reports/new")}

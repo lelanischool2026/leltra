@@ -80,18 +80,17 @@ alter table head_comments enable row level security;
 
 -- Profiles policies
 drop policy if exists "Users can read own profile" on profiles;
-create policy "Users can read own profile"
-  on profiles for select
-  using (auth.uid() = id);
-
 drop policy if exists "Admin can read all profiles" on profiles;
-create policy "Admin can read all profiles"
+drop policy if exists "Authenticated users can read all profiles" on profiles;
+create policy "Authenticated users can read all profiles"
   on profiles for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "Admin can manage profiles" on profiles;
+create policy "Admin can manage profiles"
+  on profiles for all
   using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
+    (select role from profiles where id = auth.uid()) = 'admin'
   );
 
 -- Classes policies
@@ -164,6 +163,23 @@ create policy "Director reads reports"
     )
   );
 
+-- Admin reads all reports
+drop policy if exists "Admin reads all reports" on daily_reports;
+create policy "Admin reads all reports"
+  on daily_reports for select
+  using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Teacher can update own reports
+drop policy if exists "Teacher updates own reports" on daily_reports;
+create policy "Teacher updates own reports"
+  on daily_reports for update
+  using (teacher_id = auth.uid());
+
 -- Headteacher comments policies
 drop policy if exists "Headteacher comments" on head_comments;
 create policy "Headteacher comments"
@@ -171,7 +187,7 @@ create policy "Headteacher comments"
   with check (
     exists (
       select 1 from profiles
-      where id = auth.uid() and role = 'headteacher'
+      where id = auth.uid() and role in ('headteacher', 'admin')
     )
   );
 
@@ -183,6 +199,16 @@ create policy "Teacher reads comments"
       select 1 from daily_reports dr
       where dr.id = head_comments.report_id
       and dr.teacher_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Headteacher reads all comments" on head_comments;
+create policy "Headteacher reads all comments"
+  on head_comments for select
+  using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role in ('headteacher', 'director', 'admin')
     )
   );
 
