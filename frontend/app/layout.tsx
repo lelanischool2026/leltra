@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "LSDRAS - Lelani School Daily Reporting System",
   description: "Daily reporting and analytics system for Lelani School",
+  icons: {
+    icon: "/lslogo.png",
+  },
 };
 
 export default function RootLayout({

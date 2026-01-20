@@ -63,8 +63,15 @@ export default function DashboardLayout({
       <nav className="bg-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-2 sm:py-0">
-              <h1 className="text-lg sm:text-xl font-bold">LSDRAS</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 py-2 sm:py-0">
+              <div className="flex items-center gap-2">
+                <img
+                  src="/lslogo.png"
+                  alt="Lelani School"
+                  className="h-8 w-8 sm:h-10 sm:w-10"
+                />
+                <h1 className="text-lg sm:text-xl font-bold">LSDRAS</h1>
+              </div>
               <span className="text-xs sm:text-sm text-gray-300 truncate max-w-[200px] sm:max-w-none">
                 {profile?.full_name} ({profile?.role})
               </span>

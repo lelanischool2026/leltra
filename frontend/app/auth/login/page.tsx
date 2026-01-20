@@ -62,7 +62,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div>
+        <div className="flex flex-col items-center">
+          <img
+            src="/lslogo.png"
+            alt="Lelani School Logo"
+            className="h-20 w-20 sm:h-24 sm:w-24 mb-4"
+          />
           <h1 className="text-center text-3xl sm:text-4xl font-bold text-primary">
             LSDRAS
           </h1>
