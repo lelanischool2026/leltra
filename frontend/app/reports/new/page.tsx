@@ -19,11 +19,13 @@ export default function NewReportPage() {
     absentees: "",
     health_incident: false,
     health_details: "",
+    health_severity: "" as string,
     feeding_status: "",
     lessons_covered: true,
     literacy_topic: "",
     discipline_issue: false,
     discipline_details: "",
+    discipline_severity: "" as string,
     parent_communication: false,
     parent_details: "",
     challenges: "",
@@ -66,13 +68,56 @@ export default function NewReportPage() {
     if (!user || !myClass) return;
 
     try {
-      const { error } = await supabase.from("daily_reports").insert({
-        teacher_id: user.id,
-        class_id: myClass.id,
-        ...formData,
-      });
+      // Create the daily report
+      const { data: report, error } = await supabase
+        .from("daily_reports")
+        .insert({
+          teacher_id: user.id,
+          class_id: myClass.id,
+          ...formData,
+          health_severity: formData.health_incident
+            ? formData.health_severity || "low"
+            : null,
+          discipline_severity: formData.discipline_issue
+            ? formData.discipline_severity || "low"
+            : null,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Create incident records for health/safety issues
+      if (formData.health_incident && formData.health_details) {
+        await supabase.from("incidents").insert({
+          report_id: report.id,
+          class_id: myClass.id,
+          teacher_id: user.id,
+          incident_date: formData.report_date,
+          incident_type: "health",
+          severity: formData.health_severity || "low",
+          description: formData.health_details,
+          alert_sent:
+            formData.health_severity === "critical" ||
+            formData.health_severity === "high",
+        });
+      }
+
+      // Create incident records for discipline issues
+      if (formData.discipline_issue && formData.discipline_details) {
+        await supabase.from("incidents").insert({
+          report_id: report.id,
+          class_id: myClass.id,
+          teacher_id: user.id,
+          incident_date: formData.report_date,
+          incident_type: "discipline",
+          severity: formData.discipline_severity || "low",
+          description: formData.discipline_details,
+          alert_sent:
+            formData.discipline_severity === "critical" ||
+            formData.discipline_severity === "high",
+        });
+      }
 
       router.push("/dashboard/teacher");
     } catch (error: any) {
@@ -201,15 +246,86 @@ export default function NewReportPage() {
               </span>
             </label>
             {formData.health_incident && (
-              <textarea
-                rows={3}
-                value={formData.health_details}
-                onChange={(e) =>
-                  setFormData({ ...formData, health_details: e.target.value })
-                }
-                placeholder="Describe the incident..."
-                className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
-              />
+              <>
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Severity Level <span className="text-red-600">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      {
+                        value: "low",
+                        label: "Low",
+                        color: "bg-green-100 text-green-800 border-green-300",
+                      },
+                      {
+                        value: "medium",
+                        label: "Medium",
+                        color:
+                          "bg-yellow-100 text-yellow-800 border-yellow-300",
+                      },
+                      {
+                        value: "high",
+                        label: "High",
+                        color:
+                          "bg-orange-100 text-orange-800 border-orange-300",
+                      },
+                      {
+                        value: "critical",
+                        label: "Critical",
+                        color: "bg-red-100 text-red-800 border-red-300",
+                      },
+                    ].map((level) => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            health_severity: level.value,
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${
+                          formData.health_severity === level.value
+                            ? level.color +
+                              " ring-2 ring-offset-1 ring-gray-400"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                  {(formData.health_severity === "high" ||
+                    formData.health_severity === "critical") && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                      Administration will be alerted about this incident
+                    </p>
+                  )}
+                </div>
+                <textarea
+                  rows={3}
+                  value={formData.health_details}
+                  onChange={(e) =>
+                    setFormData({ ...formData, health_details: e.target.value })
+                  }
+                  placeholder="Describe the incident..."
+                  className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
+                />
+              </>
             )}
           </div>
 
@@ -284,18 +400,89 @@ export default function NewReportPage() {
               </span>
             </label>
             {formData.discipline_issue && (
-              <textarea
-                rows={3}
-                value={formData.discipline_details}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    discipline_details: e.target.value,
-                  })
-                }
-                placeholder="Describe the issue..."
-                className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
-              />
+              <>
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Severity Level <span className="text-red-600">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      {
+                        value: "low",
+                        label: "Low",
+                        color: "bg-green-100 text-green-800 border-green-300",
+                      },
+                      {
+                        value: "medium",
+                        label: "Medium",
+                        color:
+                          "bg-yellow-100 text-yellow-800 border-yellow-300",
+                      },
+                      {
+                        value: "high",
+                        label: "High",
+                        color:
+                          "bg-orange-100 text-orange-800 border-orange-300",
+                      },
+                      {
+                        value: "critical",
+                        label: "Critical",
+                        color: "bg-red-100 text-red-800 border-red-300",
+                      },
+                    ].map((level) => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            discipline_severity: level.value,
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${
+                          formData.discipline_severity === level.value
+                            ? level.color +
+                              " ring-2 ring-offset-1 ring-gray-400"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                  {(formData.discipline_severity === "high" ||
+                    formData.discipline_severity === "critical") && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                      Administration will be alerted about this incident
+                    </p>
+                  )}
+                </div>
+                <textarea
+                  rows={3}
+                  value={formData.discipline_details}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      discipline_details: e.target.value,
+                    })
+                  }
+                  placeholder="Describe the issue..."
+                  className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
+                />
+              </>
             )}
           </div>
 

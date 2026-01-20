@@ -44,6 +44,7 @@ create table if not exists daily_reports (
 
   health_incident boolean default false,
   health_details text,
+  health_severity text check (health_severity in ('low', 'medium', 'high', 'critical')),
 
   feeding_status text,
   lessons_covered boolean default true,
@@ -51,6 +52,7 @@ create table if not exists daily_reports (
 
   discipline_issue boolean default false,
   discipline_details text,
+  discipline_severity text check (discipline_severity in ('low', 'medium', 'high', 'critical')),
 
   parent_communication boolean default false,
   parent_details text,
@@ -61,6 +63,61 @@ create table if not exists daily_reports (
 
   unique (report_date, class_id)
 );
+
+-- Incidents log table for tracking and alerting
+create table if not exists incidents (
+  id uuid primary key default gen_random_uuid(),
+  report_id uuid references daily_reports(id) on delete cascade,
+  class_id uuid references classes(id) on delete cascade,
+  teacher_id uuid references profiles(id) on delete cascade,
+  incident_date date not null,
+  incident_type text not null check (incident_type in ('health', 'discipline', 'safety', 'other')),
+  severity text not null check (severity in ('low', 'medium', 'high', 'critical')),
+  description text not null,
+  students_involved text,
+  action_taken text,
+  follow_up_required boolean default false,
+  follow_up_notes text,
+  resolved boolean default false,
+  resolved_at timestamp with time zone,
+  resolved_by uuid references profiles(id),
+  alert_sent boolean default false,
+  created_at timestamp with time zone default now()
+);
+
+-- Enable RLS on incidents
+alter table incidents enable row level security;
+
+-- Incidents policies
+drop policy if exists "Teacher inserts own incidents" on incidents;
+create policy "Teacher inserts own incidents"
+  on incidents for insert
+  with check (teacher_id = auth.uid());
+
+drop policy if exists "Teacher reads own incidents" on incidents;
+create policy "Teacher reads own incidents"
+  on incidents for select
+  using (teacher_id = auth.uid());
+
+drop policy if exists "Headteacher reads all incidents" on incidents;
+create policy "Headteacher reads all incidents"
+  on incidents for select
+  using (get_my_role() in ('headteacher', 'director', 'admin'));
+
+drop policy if exists "Admin manages incidents" on incidents;
+create policy "Admin manages incidents"
+  on incidents for all
+  using (is_admin());
+
+drop policy if exists "Headteacher updates incidents" on incidents;
+create policy "Headteacher updates incidents"
+  on incidents for update
+  using (get_my_role() in ('headteacher', 'admin'));
+
+-- Index for faster incident lookups
+create index if not exists idx_incidents_date on incidents(incident_date);
+create index if not exists idx_incidents_severity on incidents(severity);
+create index if not exists idx_incidents_type on incidents(incident_type);
 
 -- Headteacher comments on reports
 create table if not exists head_comments (
@@ -215,3 +272,42 @@ create policy "Headteacher reads all comments"
 
 -- Optional helper index for faster comment lookups by report
 create index if not exists idx_head_comments_report on head_comments(report_id);
+
+-- School settings table (singleton pattern - only one row)
+create table if not exists school_settings (
+  id uuid primary key default gen_random_uuid(),
+  school_name text not null default 'Lelani School',
+  school_motto text,
+  school_address text,
+  school_phone text,
+  school_email text,
+  academic_year text not null default '2026',
+  current_term text not null default 'Term 1' check (current_term in ('Term 1', 'Term 2', 'Term 3')),
+  term_start_date date,
+  term_end_date date,
+  report_deadline_time time default '16:00:00',
+  enable_email_alerts boolean default false,
+  alert_email text,
+  updated_at timestamp with time zone default now(),
+  updated_by uuid references profiles(id)
+);
+
+-- Enable RLS on school_settings
+alter table school_settings enable row level security;
+
+-- Everyone can read settings
+drop policy if exists "Anyone can read settings" on school_settings;
+create policy "Anyone can read settings"
+  on school_settings for select
+  using (auth.role() = 'authenticated');
+
+-- Only admin can modify settings
+drop policy if exists "Admin manages settings" on school_settings;
+create policy "Admin manages settings"
+  on school_settings for all
+  using (is_admin());
+
+-- Insert default settings if not exists
+insert into school_settings (school_name, academic_year, current_term)
+select 'Lelani School', '2026', 'Term 1'
+where not exists (select 1 from school_settings);

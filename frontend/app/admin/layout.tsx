@@ -54,6 +54,7 @@ export default function AdminLayout({
     { href: "/admin/users", label: "Users", icon: "👥" },
     { href: "/admin/classes", label: "Classes", icon: "🏫" },
     { href: "/admin/reports", label: "All Reports", icon: "📊" },
+    { href: "/admin/settings", label: "Settings", icon: "⚙️" },
   ];
 
   if (loading) {

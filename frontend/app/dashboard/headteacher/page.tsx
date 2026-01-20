@@ -11,14 +11,27 @@ interface ReportWithDetails {
   present_learners: number;
   health_incident: boolean;
   health_details: string | null;
+  health_severity: string | null;
   discipline_issue: boolean;
   discipline_details: string | null;
+  discipline_severity: string | null;
   parent_communication: boolean;
   challenges: string | null;
   classes: { grade: string; stream: string };
   profiles: { full_name: string };
   head_comments: { id: string; comment: string }[];
   flagged?: boolean;
+}
+
+interface Incident {
+  id: string;
+  incident_date: string;
+  incident_type: string;
+  severity: string;
+  description: string;
+  resolved: boolean;
+  classes: { grade: string; stream: string };
+  profiles: { full_name: string };
 }
 
 interface DailyStats {
@@ -30,10 +43,13 @@ interface DailyStats {
   disciplineIssues: number;
   classesReported: number;
   totalClasses: number;
+  criticalIncidents: number;
+  highIncidents: number;
 }
 
 export default function HeadteacherDashboard() {
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
+  const [criticalAlerts, setCriticalAlerts] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -44,7 +60,7 @@ export default function HeadteacherDashboard() {
   const [comment, setComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "issues" | "pending"
+    "all" | "issues" | "pending" | "critical"
   >("all");
 
   useEffect(() => {
@@ -74,7 +90,23 @@ export default function HeadteacherDashboard() {
       .eq("report_date", selectedDate)
       .order("created_at", { ascending: false });
 
+    // Get critical/high severity incidents for today (unresolved)
+    const { data: incidentsData } = await supabase
+      .from("incidents")
+      .select(
+        `
+        *,
+        classes(grade, stream),
+        profiles(full_name)
+      `,
+      )
+      .eq("incident_date", selectedDate)
+      .in("severity", ["critical", "high"])
+      .eq("resolved", false)
+      .order("severity", { ascending: true });
+
     const reports = (reportsData as ReportWithDetails[]) || [];
+    const incidents = (incidentsData as Incident[]) || [];
 
     // Calculate stats
     const totalStudents = reports.reduce((sum, r) => sum + r.total_learners, 0);
@@ -84,6 +116,10 @@ export default function HeadteacherDashboard() {
     );
     const healthIssues = reports.filter((r) => r.health_incident).length;
     const disciplineIssues = reports.filter((r) => r.discipline_issue).length;
+    const criticalIncidents = incidents.filter(
+      (i) => i.severity === "critical",
+    ).length;
+    const highIncidents = incidents.filter((i) => i.severity === "high").length;
 
     setStats({
       totalReports: reports.length,
@@ -94,8 +130,11 @@ export default function HeadteacherDashboard() {
       disciplineIssues,
       classesReported: reports.length,
       totalClasses: totalClasses || 0,
+      criticalIncidents,
+      highIncidents,
     });
 
+    setCriticalAlerts(incidents);
     setReports(reports);
     setLoading(false);
   };
@@ -136,6 +175,16 @@ export default function HeadteacherDashboard() {
     }
     if (filterStatus === "pending") {
       return report.head_comments.length === 0;
+    }
+    if (filterStatus === "critical") {
+      return (
+        (report.health_incident &&
+          (report.health_severity === "critical" ||
+            report.health_severity === "high")) ||
+        (report.discipline_issue &&
+          (report.discipline_severity === "critical" ||
+            report.discipline_severity === "high"))
+      );
     }
     return true;
   });
@@ -271,10 +320,87 @@ export default function HeadteacherDashboard() {
         </div>
       </div>
 
+      {/* Critical Alerts Banner */}
+      {criticalAlerts.length > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-md">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="w-6 h-6 text-red-600 animate-pulse"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-red-800">
+                ⚠️ {criticalAlerts.length} Critical/High Severity Alert
+                {criticalAlerts.length > 1 ? "s" : ""} Today
+              </h3>
+              <div className="mt-2 space-y-2">
+                {criticalAlerts.map((incident) => (
+                  <div
+                    key={incident.id}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      incident.severity === "critical"
+                        ? "bg-red-100"
+                        : "bg-orange-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                          incident.severity === "critical"
+                            ? "bg-red-600 text-white"
+                            : "bg-orange-500 text-white"
+                        }`}
+                      >
+                        {incident.severity}
+                      </span>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {incident.incident_type === "health" ? "🏥" : "⚠️"}{" "}
+                          {incident.classes.grade} - {incident.classes.stream}
+                        </p>
+                        <p className="text-sm text-gray-600 line-clamp-1">
+                          {incident.description}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {incident.incident_type}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setFilterStatus("critical")}
+                className="mt-3 text-sm font-medium text-red-700 hover:text-red-900"
+              >
+                View all incidents →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="flex space-x-2 overflow-x-auto pb-2">
         {[
           { key: "all", label: "All Reports", count: reports.length },
+          {
+            key: "critical",
+            label: "🚨 Critical",
+            count: criticalAlerts.length,
+            highlight: criticalAlerts.length > 0,
+          },
           {
             key: "issues",
             label: "⚠️ Issues",
@@ -290,7 +416,7 @@ export default function HeadteacherDashboard() {
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setFilterStatus(tab.key as any)}
+            onClick={() => setFilterStatus(tab.key as typeof filterStatus)}
             className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
               filterStatus === tab.key
                 ? "bg-accent text-white"
