@@ -55,7 +55,7 @@ export default function DashboardLayout({
 
   const getNavItems = () => {
     if (!profile) return [];
-    
+
     switch (profile.role) {
       case "teacher":
         return [
@@ -97,7 +97,10 @@ export default function DashboardLayout({
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-4">
-              <Link href={navItems[0]?.href || "/dashboard/teacher"} className="flex items-center gap-2">
+              <Link
+                href={navItems[0]?.href || "/dashboard/teacher"}
+                className="flex items-center gap-2"
+              >
                 <img
                   src="/lslogo.png"
                   alt="Lelani School"
@@ -105,7 +108,7 @@ export default function DashboardLayout({
                 />
                 <h1 className="text-lg sm:text-xl font-bold">LSDRAS</h1>
               </Link>
-              
+
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center space-x-1 ml-6">
                 {navItems.map((item) => (
@@ -137,17 +140,32 @@ export default function DashboardLayout({
               >
                 Logout
               </button>
-              
+
               {/* Mobile menu button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden text-gray-300 hover:text-white p-2"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   {mobileMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
                   )}
                 </svg>
               </button>

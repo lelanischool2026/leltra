@@ -102,17 +102,23 @@ export default function AdminUsersPage() {
     }));
 
     // Add user creation activity
-    const recentUsers = profiles?.slice(0, 5).map((p, i) => ({
-      id: `user-${i}`,
-      user_name: "System",
-      action: "User Registered",
-      details: p.full_name,
-      timestamp: p.created_at,
-    })) || [];
+    const recentUsers =
+      profiles?.slice(0, 5).map((p, i) => ({
+        id: `user-${i}`,
+        user_name: "System",
+        action: "User Registered",
+        details: p.full_name,
+        timestamp: p.created_at,
+      })) || [];
 
-    setRecentActivity([...activity, ...recentUsers].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    ).slice(0, 15));
+    setRecentActivity(
+      [...activity, ...recentUsers]
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        )
+        .slice(0, 15),
+    );
 
     setLoading(false);
   };
@@ -174,7 +180,11 @@ export default function AdminUsersPage() {
   };
 
   const handleCreateUser = async () => {
-    if (!createFormData.email || !createFormData.password || !createFormData.full_name) {
+    if (
+      !createFormData.email ||
+      !createFormData.password ||
+      !createFormData.full_name
+    ) {
       setMessage({ type: "error", text: "Please fill in all required fields" });
       return;
     }
@@ -189,14 +199,13 @@ export default function AdminUsersPage() {
         type: "error",
         text: "To create new users, please use Supabase Dashboard → Authentication → Add User. Then add them to profiles table with the SQL shown in the setup guide.",
       });
-      
+
       // The code below would work with Supabase Admin API (server-side)
       // const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       //   email: createFormData.email,
       //   password: createFormData.password,
       //   email_confirm: true,
       // });
-      
     } catch (error: any) {
       setMessage({ type: "error", text: error.message });
     } finally {
@@ -288,7 +297,9 @@ export default function AdminUsersPage() {
       {activeTab === "activity" && (
         <div className="bg-white shadow-lg rounded-xl overflow-hidden">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">Recent System Activity</h2>
+            <h2 className="font-semibold text-gray-900">
+              Recent System Activity
+            </h2>
           </div>
           {recentActivity.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
@@ -297,28 +308,40 @@ export default function AdminUsersPage() {
           ) : (
             <div className="divide-y divide-gray-100">
               {recentActivity.map((activity) => (
-                <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div
+                  key={activity.id}
+                  className="p-4 hover:bg-gray-50 transition-colors"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                        activity.action.includes("Report") ? "bg-blue-500" : "bg-green-500"
-                      }`}>
+                      <div
+                        className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                          activity.action.includes("Report")
+                            ? "bg-blue-500"
+                            : "bg-green-500"
+                        }`}
+                      >
                         {activity.action.includes("Report") ? "📋" : "👤"}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{activity.action}</p>
+                        <p className="font-medium text-gray-900">
+                          {activity.action}
+                        </p>
                         <p className="text-sm text-gray-500">
                           {activity.user_name} • {activity.details}
                         </p>
                       </div>
                     </div>
                     <span className="text-xs text-gray-400">
-                      {new Date(activity.timestamp).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {new Date(activity.timestamp).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
                     </span>
                   </div>
                 </div>
@@ -330,111 +353,111 @@ export default function AdminUsersPage() {
 
       {/* Users Table */}
       {activeTab === "users" && (
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-        {/* Mobile View */}
-        <div className="sm:hidden">
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className="p-4 border-b border-gray-200 last:border-0"
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">
-                    {user.full_name}
-                  </h3>
-                  <span
-                    className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                      user.role,
-                    )}`}
-                  >
-                    {user.role}
-                  </span>
-                  {user.assigned_class && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      📚 {user.assigned_class.grade} -{" "}
-                      {user.assigned_class.stream}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleEdit(user)}
-                  className="text-accent hover:text-accent-dark font-medium text-sm"
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Desktop View */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Assigned Class
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
-                          {user.full_name.charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.full_name}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
+          {/* Mobile View */}
+          <div className="sm:hidden">
+            {users.map((user) => (
+              <div
+                key={user.id}
+                className="p-4 border-b border-gray-200 last:border-0"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">
+                      {user.full_name}
+                    </h3>
                     <span
-                      className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(
+                      className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
                         user.role,
                       )}`}
                     >
                       {user.role}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.assigned_class
-                      ? `${user.assigned_class.grade} - ${user.assigned_class.stream}`
-                      : "—"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="text-accent hover:text-accent-dark font-medium transition-colors"
-                    >
-                      Edit
-                    </button>
-                  </td>
+                    {user.assigned_class && (
+                      <p className="mt-1 text-sm text-gray-500">
+                        📚 {user.assigned_class.grade} -{" "}
+                        {user.assigned_class.stream}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleEdit(user)}
+                    className="text-accent hover:text-accent-dark font-medium text-sm"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Assigned Class
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 flex-shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
+                            {user.full_name.charAt(0).toUpperCase()}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.full_name}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(
+                          user.role,
+                        )}`}
+                      >
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.assigned_class
+                        ? `${user.assigned_class.grade} - ${user.assigned_class.stream}`
+                        : "—"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="text-accent hover:text-accent-dark font-medium transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Edit Modal */}
@@ -545,16 +568,31 @@ export default function AdminUsersPage() {
               </p>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h4 className="font-medium text-blue-800 mb-2">📋 Instructions</h4>
+                <h4 className="font-medium text-blue-800 mb-2">
+                  📋 Instructions
+                </h4>
                 <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
-                  <li>Go to <strong>Supabase Dashboard</strong> → <strong>Authentication</strong> → <strong>Users</strong></li>
-                  <li>Click <strong>"Add user"</strong> → <strong>"Create new user"</strong></li>
-                  <li>Enter email, password, and check <strong>"Auto Confirm User"</strong></li>
-                  <li>Copy the new <strong>User ID</strong></li>
-                  <li>Go to <strong>SQL Editor</strong> and run:</li>
+                  <li>
+                    Go to <strong>Supabase Dashboard</strong> →{" "}
+                    <strong>Authentication</strong> → <strong>Users</strong>
+                  </li>
+                  <li>
+                    Click <strong>"Add user"</strong> →{" "}
+                    <strong>"Create new user"</strong>
+                  </li>
+                  <li>
+                    Enter email, password, and check{" "}
+                    <strong>"Auto Confirm User"</strong>
+                  </li>
+                  <li>
+                    Copy the new <strong>User ID</strong>
+                  </li>
+                  <li>
+                    Go to <strong>SQL Editor</strong> and run:
+                  </li>
                 </ol>
                 <pre className="mt-3 bg-blue-100 p-3 rounded text-xs overflow-x-auto">
-{`INSERT INTO profiles (id, full_name, role)
+                  {`INSERT INTO profiles (id, full_name, role)
 VALUES (
   'paste-user-id-here',
   'Teacher Name',
@@ -565,10 +603,11 @@ VALUES (
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-yellow-800">
-                  <strong>💡 Tip:</strong> For teachers, also assign them to a class:
+                  <strong>💡 Tip:</strong> For teachers, also assign them to a
+                  class:
                 </p>
                 <pre className="mt-2 bg-yellow-100 p-3 rounded text-xs overflow-x-auto">
-{`INSERT INTO teacher_classes (teacher_id, class_id)
+                  {`INSERT INTO teacher_classes (teacher_id, class_id)
 VALUES ('teacher-id', 'class-id');`}
                 </pre>
               </div>

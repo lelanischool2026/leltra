@@ -112,7 +112,10 @@ export default function AdminReportsPage() {
         <div className="bg-white rounded-xl shadow-md p-4">
           <p className="text-sm text-gray-500">Absent</p>
           <p className="text-2xl font-bold text-red-600">
-            {reports.reduce((sum, r) => sum + (r.total_learners - r.present_learners), 0)}
+            {reports.reduce(
+              (sum, r) => sum + (r.total_learners - r.present_learners),
+              0,
+            )}
           </p>
         </div>
       </div>
@@ -266,7 +269,8 @@ export default function AdminReportsPage() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-red-600">
-                        {selectedReport.total_learners - selectedReport.present_learners}
+                        {selectedReport.total_learners -
+                          selectedReport.present_learners}
                       </p>
                       <p className="text-xs text-gray-500">Absent</p>
                     </div>
@@ -279,9 +283,7 @@ export default function AdminReportsPage() {
                     <h4 className="font-medium text-gray-800 mb-1">
                       Absentees
                     </h4>
-                    <p className="text-gray-600">
-                      {selectedReport.absentees}
-                    </p>
+                    <p className="text-gray-600">{selectedReport.absentees}</p>
                   </div>
                 )}
 
@@ -340,9 +342,7 @@ export default function AdminReportsPage() {
                     <h4 className="font-medium text-gray-800 mb-1">
                       Challenges
                     </h4>
-                    <p className="text-gray-600">
-                      {selectedReport.challenges}
-                    </p>
+                    <p className="text-gray-600">{selectedReport.challenges}</p>
                   </div>
                 )}
               </div>

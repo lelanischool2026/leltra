@@ -36,13 +36,16 @@ export default function HeadteacherDashboard() {
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [stats, setStats] = useState<DailyStats | null>(null);
-  const [selectedReport, setSelectedReport] = useState<ReportWithDetails | null>(null);
+  const [selectedReport, setSelectedReport] =
+    useState<ReportWithDetails | null>(null);
   const [comment, setComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<"all" | "issues" | "pending">("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "issues" | "pending"
+  >("all");
 
   useEffect(() => {
     loadDashboardData();
@@ -60,12 +63,14 @@ export default function HeadteacherDashboard() {
     // Get reports for selected date with all related data
     const { data: reportsData } = await supabase
       .from("daily_reports")
-      .select(`
+      .select(
+        `
         *,
         classes(grade, stream),
         profiles(full_name),
         head_comments(id, comment)
-      `)
+      `,
+      )
       .eq("report_date", selectedDate)
       .order("created_at", { ascending: false });
 
@@ -73,7 +78,10 @@ export default function HeadteacherDashboard() {
 
     // Calculate stats
     const totalStudents = reports.reduce((sum, r) => sum + r.total_learners, 0);
-    const presentStudents = reports.reduce((sum, r) => sum + r.present_learners, 0);
+    const presentStudents = reports.reduce(
+      (sum, r) => sum + r.present_learners,
+      0,
+    );
     const healthIssues = reports.filter((r) => r.health_incident).length;
     const disciplineIssues = reports.filter((r) => r.discipline_issue).length;
 
@@ -96,7 +104,9 @@ export default function HeadteacherDashboard() {
     if (!selectedReport || !comment.trim()) return;
     setSubmittingComment(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     const { error } = await supabase.from("head_comments").insert({
       report_id: selectedReport.id,
@@ -168,7 +178,9 @@ export default function HeadteacherDashboard() {
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Reports Submitted</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">
+                Reports Submitted
+              </p>
               <p className="text-2xl sm:text-3xl font-bold text-primary mt-1">
                 {stats?.classesReported}/{stats?.totalClasses}
               </p>
@@ -192,7 +204,9 @@ export default function HeadteacherDashboard() {
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Attendance Rate</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">
+                Attendance Rate
+              </p>
               <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1">
                 {getAttendancePercentage()}%
               </p>
@@ -209,31 +223,51 @@ export default function HeadteacherDashboard() {
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Health Issues</p>
-              <p className={`text-2xl sm:text-3xl font-bold mt-1 ${stats?.healthIssues ? "text-yellow-600" : "text-green-600"}`}>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">
+                Health Issues
+              </p>
+              <p
+                className={`text-2xl sm:text-3xl font-bold mt-1 ${stats?.healthIssues ? "text-yellow-600" : "text-green-600"}`}
+              >
                 {stats?.healthIssues || 0}
               </p>
             </div>
-            <div className={`h-12 w-12 ${stats?.healthIssues ? "bg-yellow-100" : "bg-green-100"} rounded-full flex items-center justify-center`}>
-              <span className="text-2xl">{stats?.healthIssues ? "⚠️" : "💚"}</span>
+            <div
+              className={`h-12 w-12 ${stats?.healthIssues ? "bg-yellow-100" : "bg-green-100"} rounded-full flex items-center justify-center`}
+            >
+              <span className="text-2xl">
+                {stats?.healthIssues ? "⚠️" : "💚"}
+              </span>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">Classes with health incidents</p>
+          <p className="text-xs text-gray-500 mt-2">
+            Classes with health incidents
+          </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Discipline Issues</p>
-              <p className={`text-2xl sm:text-3xl font-bold mt-1 ${stats?.disciplineIssues ? "text-red-600" : "text-green-600"}`}>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">
+                Discipline Issues
+              </p>
+              <p
+                className={`text-2xl sm:text-3xl font-bold mt-1 ${stats?.disciplineIssues ? "text-red-600" : "text-green-600"}`}
+              >
                 {stats?.disciplineIssues || 0}
               </p>
             </div>
-            <div className={`h-12 w-12 ${stats?.disciplineIssues ? "bg-red-100" : "bg-green-100"} rounded-full flex items-center justify-center`}>
-              <span className="text-2xl">{stats?.disciplineIssues ? "🚨" : "😊"}</span>
+            <div
+              className={`h-12 w-12 ${stats?.disciplineIssues ? "bg-red-100" : "bg-green-100"} rounded-full flex items-center justify-center`}
+            >
+              <span className="text-2xl">
+                {stats?.disciplineIssues ? "🚨" : "😊"}
+              </span>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">Classes with discipline issues</p>
+          <p className="text-xs text-gray-500 mt-2">
+            Classes with discipline issues
+          </p>
         </div>
       </div>
 
@@ -241,8 +275,18 @@ export default function HeadteacherDashboard() {
       <div className="flex space-x-2 overflow-x-auto pb-2">
         {[
           { key: "all", label: "All Reports", count: reports.length },
-          { key: "issues", label: "⚠️ Issues", count: reports.filter(r => r.health_incident || r.discipline_issue).length },
-          { key: "pending", label: "📝 Needs Review", count: reports.filter(r => r.head_comments.length === 0).length },
+          {
+            key: "issues",
+            label: "⚠️ Issues",
+            count: reports.filter(
+              (r) => r.health_incident || r.discipline_issue,
+            ).length,
+          },
+          {
+            key: "pending",
+            label: "📝 Needs Review",
+            count: reports.filter((r) => r.head_comments.length === 0).length,
+          },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -323,7 +367,9 @@ export default function HeadteacherDashboard() {
                 </div>
 
                 {/* Quick Preview of Issues */}
-                {(report.health_incident || report.discipline_issue || report.challenges) && (
+                {(report.health_incident ||
+                  report.discipline_issue ||
+                  report.challenges) && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                     {report.health_incident && report.health_details && (
                       <p className="text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded-lg">
@@ -362,10 +408,12 @@ export default function HeadteacherDashboard() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">
-                    {selectedReport.classes.grade} - {selectedReport.classes.stream}
+                    {selectedReport.classes.grade} -{" "}
+                    {selectedReport.classes.stream}
                   </h3>
                   <p className="text-gray-500">
-                    {selectedReport.profiles.full_name} • {selectedReport.report_date}
+                    {selectedReport.profiles.full_name} •{" "}
+                    {selectedReport.report_date}
                   </p>
                 </div>
                 <button
@@ -378,19 +426,26 @@ export default function HeadteacherDashboard() {
 
               {/* Attendance Section */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4">
-                <h4 className="font-semibold text-gray-800 mb-3">📊 Attendance</h4>
+                <h4 className="font-semibold text-gray-800 mb-3">
+                  📊 Attendance
+                </h4>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-3xl font-bold text-primary">{selectedReport.total_learners}</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {selectedReport.total_learners}
+                    </p>
                     <p className="text-xs text-gray-500">Total</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-green-600">{selectedReport.present_learners}</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {selectedReport.present_learners}
+                    </p>
                     <p className="text-xs text-gray-500">Present</p>
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-red-600">
-                      {selectedReport.total_learners - selectedReport.present_learners}
+                      {selectedReport.total_learners -
+                        selectedReport.present_learners}
                     </p>
                     <p className="text-xs text-gray-500">Absent</p>
                   </div>
@@ -416,7 +471,8 @@ export default function HeadteacherDashboard() {
                       🚨 Discipline Issue Reported
                     </h4>
                     <p className="text-red-700 mt-1">
-                      {selectedReport.discipline_details || "No details provided"}
+                      {selectedReport.discipline_details ||
+                        "No details provided"}
                     </p>
                   </div>
                 )}
@@ -427,15 +483,20 @@ export default function HeadteacherDashboard() {
                       📞 Parent Communication
                     </h4>
                     <p className="text-blue-700 mt-1">
-                      {(selectedReport as any).parent_details || "Parent was contacted"}
+                      {(selectedReport as any).parent_details ||
+                        "Parent was contacted"}
                     </p>
                   </div>
                 )}
 
                 {selectedReport.challenges && (
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-800">💭 Challenges</h4>
-                    <p className="text-gray-600 mt-1">{selectedReport.challenges}</p>
+                    <h4 className="font-semibold text-gray-800">
+                      💭 Challenges
+                    </h4>
+                    <p className="text-gray-600 mt-1">
+                      {selectedReport.challenges}
+                    </p>
                   </div>
                 )}
               </div>
@@ -443,10 +504,15 @@ export default function HeadteacherDashboard() {
               {/* Previous Comments */}
               {selectedReport.head_comments.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="font-semibold text-gray-800 mb-2">Previous Comments</h4>
+                  <h4 className="font-semibold text-gray-800 mb-2">
+                    Previous Comments
+                  </h4>
                   <div className="space-y-2">
                     {selectedReport.head_comments.map((c, index) => (
-                      <div key={c.id || index} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div
+                        key={c.id || index}
+                        className="bg-green-50 border border-green-200 rounded-lg p-3"
+                      >
                         <p className="text-green-800 text-sm">{c.comment}</p>
                       </div>
                     ))}
@@ -456,7 +522,9 @@ export default function HeadteacherDashboard() {
 
               {/* Add Comment Section */}
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="font-semibold text-gray-800 mb-2">Add Comment / Feedback</h4>
+                <h4 className="font-semibold text-gray-800 mb-2">
+                  Add Comment / Feedback
+                </h4>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}

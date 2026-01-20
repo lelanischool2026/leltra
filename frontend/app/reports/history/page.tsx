@@ -43,7 +43,9 @@ export default function ReportHistoryPage() {
   }, [filters, page, userRole]);
 
   const loadUserAndReports = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
@@ -58,7 +60,9 @@ export default function ReportHistoryPage() {
       .from("classes")
       .select("grade")
       .order("grade");
-    const uniqueGrades = Array.from(new Set(classes?.map((c) => c.grade) || []));
+    const uniqueGrades = Array.from(
+      new Set(classes?.map((c) => c.grade) || []),
+    );
     setGrades(uniqueGrades);
   };
 
@@ -67,7 +71,8 @@ export default function ReportHistoryPage() {
 
     let query = supabase
       .from("daily_reports")
-      .select(`
+      .select(
+        `
         id,
         report_date,
         total_learners,
@@ -78,7 +83,8 @@ export default function ReportHistoryPage() {
         created_at,
         classes(grade, stream),
         profiles(full_name)
-      `)
+      `,
+      )
       .order("report_date", { ascending: false })
       .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -106,12 +112,14 @@ export default function ReportHistoryPage() {
       challenges: r.challenges,
       created_at: r.created_at,
       classes: r.classes,
-      profiles: r.profiles
+      profiles: r.profiles,
     }));
 
     // Client-side filtering for grade and search
     if (filters.grade) {
-      filteredData = filteredData.filter((r) => r.classes.grade === filters.grade);
+      filteredData = filteredData.filter(
+        (r) => r.classes.grade === filters.grade,
+      );
     }
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
@@ -119,7 +127,7 @@ export default function ReportHistoryPage() {
         (r) =>
           r.profiles.full_name.toLowerCase().includes(searchLower) ||
           r.classes.stream.toLowerCase().includes(searchLower) ||
-          r.classes.grade.toLowerCase().includes(searchLower)
+          r.classes.grade.toLowerCase().includes(searchLower),
       );
     }
 
@@ -159,7 +167,13 @@ export default function ReportHistoryPage() {
             </p>
           </div>
           <Link
-            href={userRole === "teacher" ? "/dashboard/teacher" : userRole === "headteacher" ? "/dashboard/headteacher" : "/dashboard/director"}
+            href={
+              userRole === "teacher"
+                ? "/dashboard/teacher"
+                : userRole === "headteacher"
+                  ? "/dashboard/headteacher"
+                  : "/dashboard/director"
+            }
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
           >
             ← Back to Dashboard
@@ -178,7 +192,9 @@ export default function ReportHistoryPage() {
                 type="text"
                 placeholder="Teacher name, grade, or stream..."
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>
@@ -190,12 +206,16 @@ export default function ReportHistoryPage() {
               </label>
               <select
                 value={filters.grade}
-                onChange={(e) => setFilters({ ...filters, grade: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, grade: e.target.value })
+                }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               >
                 <option value="">All Grades</option>
                 {grades.map((grade) => (
-                  <option key={grade} value={grade}>{grade}</option>
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
                 ))}
               </select>
             </div>
@@ -208,7 +228,9 @@ export default function ReportHistoryPage() {
               <input
                 type="date"
                 value={filters.dateFrom}
-                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, dateFrom: e.target.value })
+                }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>
@@ -221,7 +243,9 @@ export default function ReportHistoryPage() {
               <input
                 type="date"
                 value={filters.dateTo}
-                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, dateTo: e.target.value })
+                }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               />
             </div>
@@ -232,10 +256,14 @@ export default function ReportHistoryPage() {
               <input
                 type="checkbox"
                 checked={filters.hasIssues}
-                onChange={(e) => setFilters({ ...filters, hasIssues: e.target.checked })}
+                onChange={(e) =>
+                  setFilters({ ...filters, hasIssues: e.target.checked })
+                }
                 className="w-4 h-4 text-accent focus:ring-accent border-gray-300 rounded"
               />
-              <span className="text-sm text-gray-700">Only show reports with issues</span>
+              <span className="text-sm text-gray-700">
+                Only show reports with issues
+              </span>
             </label>
 
             <button
@@ -246,7 +274,10 @@ export default function ReportHistoryPage() {
             </button>
 
             <button
-              onClick={() => { setPage(1); loadReports(); }}
+              onClick={() => {
+                setPage(1);
+                loadReports();
+              }}
               className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors text-sm font-medium"
             >
               Apply Filters
@@ -261,7 +292,9 @@ export default function ReportHistoryPage() {
           </div>
         ) : reports.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
-            <p className="text-gray-500 text-lg">No reports found matching your filters</p>
+            <p className="text-gray-500 text-lg">
+              No reports found matching your filters
+            </p>
           </div>
         ) : (
           <>
@@ -305,28 +338,49 @@ export default function ReportHistoryPage() {
                             👤 {report.profiles.full_name}
                           </p>
                           <p className="text-sm text-gray-500">
-                            📅 {new Date(report.report_date).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            📅{" "}
+                            {new Date(report.report_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "short",
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-6">
                         <div className="text-center">
-                          <p className={`text-2xl font-bold ${getAttendanceColor(report.present_learners, report.total_learners)}`}>
-                            {Math.round((report.present_learners / report.total_learners) * 100)}%
+                          <p
+                            className={`text-2xl font-bold ${getAttendanceColor(report.present_learners, report.total_learners)}`}
+                          >
+                            {Math.round(
+                              (report.present_learners /
+                                report.total_learners) *
+                                100,
+                            )}
+                            %
                           </p>
                           <p className="text-xs text-gray-500">
                             {report.present_learners}/{report.total_learners}
                           </p>
                         </div>
                         <div className="text-accent">
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
                           </svg>
                         </div>
                       </div>

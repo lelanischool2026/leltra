@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { exportReportToPDF } from "@/lib/pdf-export";
 
 interface ReportDetails {
   id: string;
@@ -50,6 +51,34 @@ export default function ReportDetailPage() {
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  const handleExportPDF = () => {
+    if (!report) return;
+    
+    exportReportToPDF({
+      reportDate: report.report_date,
+      className: `${report.classes.grade} - ${report.classes.stream}`,
+      teacherName: report.profiles.full_name,
+      totalLearners: report.total_learners,
+      presentLearners: report.present_learners,
+      absentees: report.absentees,
+      healthIncident: report.health_incident,
+      healthDetails: report.health_details,
+      feedingStatus: report.feeding_status,
+      lessonsCovered: report.lessons_covered,
+      literacyTopic: report.literacy_topic,
+      disciplineIssue: report.discipline_issue,
+      disciplineDetails: report.discipline_details,
+      parentCommunication: report.parent_communication,
+      parentDetails: report.parent_details,
+      challenges: report.challenges,
+      comments: comments.map(c => ({
+        author: c.profiles.full_name,
+        comment: c.comment,
+        date: c.created_at
+      }))
+    });
+  };
+
   useEffect(() => {
     loadReportDetails();
   }, [reportId]);
@@ -58,7 +87,9 @@ export default function ReportDetailPage() {
     setLoading(true);
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
       const { data: profile } = await supabase
@@ -72,11 +103,13 @@ export default function ReportDetailPage() {
     // Get report details
     const { data: reportData } = await supabase
       .from("daily_reports")
-      .select(`
+      .select(
+        `
         *,
         classes(grade, stream),
         profiles(full_name)
-      `)
+      `,
+      )
       .eq("id", reportId)
       .single();
 
@@ -88,22 +121,26 @@ export default function ReportDetailPage() {
     // Get comments
     const { data: commentsData } = await supabase
       .from("head_comments")
-      .select(`
+      .select(
+        `
         id,
         comment,
         created_at,
         profiles(full_name)
-      `)
+      `,
+      )
       .eq("report_id", reportId)
       .order("created_at", { ascending: true });
 
     // Map the comments data to match our interface
-    const mappedComments: HeadComment[] = (commentsData || []).map((c: any) => ({
-      id: c.id,
-      comment: c.comment,
-      created_at: c.created_at,
-      profiles: c.profiles
-    }));
+    const mappedComments: HeadComment[] = (commentsData || []).map(
+      (c: any) => ({
+        id: c.id,
+        comment: c.comment,
+        created_at: c.created_at,
+        profiles: c.profiles,
+      }),
+    );
     setComments(mappedComments);
     setLoading(false);
   };
@@ -157,10 +194,10 @@ export default function ReportDetailPage() {
     setSubmittingComment(false);
   };
 
-  const canEdit = report && (
-    (userRole === "teacher" && report.teacher_id === userId) ||
-    userRole === "admin"
-  );
+  const canEdit =
+    report &&
+    ((userRole === "teacher" && report.teacher_id === userId) ||
+      userRole === "admin");
 
   const canComment = userRole === "headteacher" || userRole === "admin";
 
@@ -207,14 +244,25 @@ export default function ReportDetailPage() {
               })}
             </p>
           </div>
-          {canEdit && !isEditing && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsEditing(true)}
-              className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors font-medium"
+              onClick={handleExportPDF}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center gap-2"
             >
-              ✏️ Edit Report
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              PDF
             </button>
-          )}
+            {canEdit && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors font-medium"
+              >
+                ✏️ Edit Report
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Report Card */}
@@ -226,7 +274,9 @@ export default function ReportDetailPage() {
                 👤
               </div>
               <div>
-                <p className="font-semibold text-lg">{report.profiles.full_name}</p>
+                <p className="font-semibold text-lg">
+                  {report.profiles.full_name}
+                </p>
                 <p className="text-white/80 text-sm">Class Teacher</p>
               </div>
             </div>
@@ -241,20 +291,34 @@ export default function ReportDetailPage() {
               {isEditing ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Learners</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total Learners
+                    </label>
                     <input
                       type="number"
                       value={editData.total_learners || 0}
-                      onChange={(e) => setEditData({ ...editData, total_learners: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          total_learners: parseInt(e.target.value),
+                        })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Present</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Present
+                    </label>
                     <input
                       type="number"
                       value={editData.present_learners || 0}
-                      onChange={(e) => setEditData({ ...editData, present_learners: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          present_learners: parseInt(e.target.value),
+                        })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
@@ -262,15 +326,21 @@ export default function ReportDetailPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-3xl font-bold text-primary">{report.total_learners}</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {report.total_learners}
+                    </p>
                     <p className="text-xs text-gray-500">Total</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-green-600">{report.present_learners}</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {report.present_learners}
+                    </p>
                     <p className="text-xs text-gray-500">Present</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-red-600">{report.total_learners - report.present_learners}</p>
+                    <p className="text-3xl font-bold text-red-600">
+                      {report.total_learners - report.present_learners}
+                    </p>
                     <p className="text-xs text-gray-500">Absent</p>
                   </div>
                 </div>
@@ -282,10 +352,14 @@ export default function ReportDetailPage() {
               )}
               {isEditing && (
                 <div className="mt-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Absentees Names</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Absentees Names
+                  </label>
                   <textarea
                     value={editData.absentees || ""}
-                    onChange={(e) => setEditData({ ...editData, absentees: e.target.value })}
+                    onChange={(e) =>
+                      setEditData({ ...editData, absentees: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     rows={2}
                   />
@@ -294,7 +368,9 @@ export default function ReportDetailPage() {
             </div>
 
             {/* Health Section */}
-            <div className={`rounded-xl p-4 sm:p-5 ${report.health_incident ? "bg-yellow-50 border border-yellow-200" : "bg-gray-50"}`}>
+            <div
+              className={`rounded-xl p-4 sm:p-5 ${report.health_incident ? "bg-yellow-50 border border-yellow-200" : "bg-gray-50"}`}
+            >
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 🏥 Health Status
               </h3>
@@ -304,7 +380,12 @@ export default function ReportDetailPage() {
                     <input
                       type="checkbox"
                       checked={editData.health_incident || false}
-                      onChange={(e) => setEditData({ ...editData, health_incident: e.target.checked })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          health_incident: e.target.checked,
+                        })
+                      }
                       className="w-4 h-4 text-accent"
                     />
                     <span>Health incident reported</span>
@@ -312,7 +393,12 @@ export default function ReportDetailPage() {
                   {editData.health_incident && (
                     <textarea
                       value={editData.health_details || ""}
-                      onChange={(e) => setEditData({ ...editData, health_details: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          health_details: e.target.value,
+                        })
+                      }
                       placeholder="Describe the health incident..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       rows={2}
@@ -321,9 +407,13 @@ export default function ReportDetailPage() {
                 </div>
               ) : report.health_incident ? (
                 <div>
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full">⚠️ Issue Reported</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full">
+                    ⚠️ Issue Reported
+                  </span>
                   {report.health_details && (
-                    <p className="mt-2 text-gray-700">{report.health_details}</p>
+                    <p className="mt-2 text-gray-700">
+                      {report.health_details}
+                    </p>
                   )}
                 </div>
               ) : (
@@ -332,7 +422,9 @@ export default function ReportDetailPage() {
             </div>
 
             {/* Discipline Section */}
-            <div className={`rounded-xl p-4 sm:p-5 ${report.discipline_issue ? "bg-red-50 border border-red-200" : "bg-gray-50"}`}>
+            <div
+              className={`rounded-xl p-4 sm:p-5 ${report.discipline_issue ? "bg-red-50 border border-red-200" : "bg-gray-50"}`}
+            >
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 📋 Discipline
               </h3>
@@ -342,7 +434,12 @@ export default function ReportDetailPage() {
                     <input
                       type="checkbox"
                       checked={editData.discipline_issue || false}
-                      onChange={(e) => setEditData({ ...editData, discipline_issue: e.target.checked })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          discipline_issue: e.target.checked,
+                        })
+                      }
                       className="w-4 h-4 text-accent"
                     />
                     <span>Discipline issue reported</span>
@@ -350,7 +447,12 @@ export default function ReportDetailPage() {
                   {editData.discipline_issue && (
                     <textarea
                       value={editData.discipline_details || ""}
-                      onChange={(e) => setEditData({ ...editData, discipline_details: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          discipline_details: e.target.value,
+                        })
+                      }
                       placeholder="Describe the discipline issue..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       rows={2}
@@ -359,9 +461,13 @@ export default function ReportDetailPage() {
                 </div>
               ) : report.discipline_issue ? (
                 <div>
-                  <span className="px-2 py-1 bg-red-100 text-red-700 text-sm rounded-full">🚨 Issue Reported</span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 text-sm rounded-full">
+                    🚨 Issue Reported
+                  </span>
                   {report.discipline_details && (
-                    <p className="mt-2 text-gray-700">{report.discipline_details}</p>
+                    <p className="mt-2 text-gray-700">
+                      {report.discipline_details}
+                    </p>
                   )}
                 </div>
               ) : (
@@ -380,28 +486,50 @@ export default function ReportDetailPage() {
                     <input
                       type="checkbox"
                       checked={editData.lessons_covered || false}
-                      onChange={(e) => setEditData({ ...editData, lessons_covered: e.target.checked })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          lessons_covered: e.target.checked,
+                        })
+                      }
                       className="w-4 h-4 text-accent"
                     />
                     <span>All lessons covered</span>
                   </label>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Literacy Topic</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Literacy Topic
+                    </label>
                     <input
                       type="text"
                       value={editData.literacy_topic || ""}
-                      onChange={(e) => setEditData({ ...editData, literacy_topic: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          literacy_topic: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className={report.lessons_covered ? "text-green-600" : "text-yellow-600"}>
-                    {report.lessons_covered ? "✓ All lessons covered" : "⚠️ Some lessons not covered"}
+                  <p
+                    className={
+                      report.lessons_covered
+                        ? "text-green-600"
+                        : "text-yellow-600"
+                    }
+                  >
+                    {report.lessons_covered
+                      ? "✓ All lessons covered"
+                      : "⚠️ Some lessons not covered"}
                   </p>
                   {report.literacy_topic && (
-                    <p className="text-gray-600"><strong>Literacy Topic:</strong> {report.literacy_topic}</p>
+                    <p className="text-gray-600">
+                      <strong>Literacy Topic:</strong> {report.literacy_topic}
+                    </p>
                   )}
                 </div>
               )}
@@ -409,17 +537,23 @@ export default function ReportDetailPage() {
 
             {/* Challenges */}
             <div className="bg-gray-50 rounded-xl p-4 sm:p-5">
-              <h3 className="font-semibold text-gray-800 mb-3">💭 Challenges</h3>
+              <h3 className="font-semibold text-gray-800 mb-3">
+                💭 Challenges
+              </h3>
               {isEditing ? (
                 <textarea
                   value={editData.challenges || ""}
-                  onChange={(e) => setEditData({ ...editData, challenges: e.target.value })}
+                  onChange={(e) =>
+                    setEditData({ ...editData, challenges: e.target.value })
+                  }
                   placeholder="Any challenges faced today..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   rows={3}
                 />
               ) : (
-                <p className="text-gray-600">{report.challenges || "No challenges reported"}</p>
+                <p className="text-gray-600">
+                  {report.challenges || "No challenges reported"}
+                </p>
               )}
             </div>
 
@@ -460,7 +594,10 @@ export default function ReportDetailPage() {
               <p className="text-gray-500 text-center py-4">No comments yet</p>
             ) : (
               comments.map((comment) => (
-                <div key={comment.id} className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div
+                  key={comment.id}
+                  className="bg-green-50 border border-green-200 rounded-xl p-4"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-green-800">
                       {comment.profiles?.full_name || "Headteacher"}
