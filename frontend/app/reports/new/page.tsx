@@ -1,84 +1,88 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
-import { Class } from '@/lib/types'
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { Class } from "@/lib/types";
 
 export default function NewReportPage() {
-  const [myClass, setMyClass] = useState<Class | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const [myClass, setMyClass] = useState<Class | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const [formData, setFormData] = useState({
-    report_date: new Date().toISOString().split('T')[0],
+    report_date: new Date().toISOString().split("T")[0],
     total_learners: 0,
     present_learners: 0,
-    absentees: '',
+    absentees: "",
     health_incident: false,
-    health_details: '',
-    feeding_status: '',
+    health_details: "",
+    feeding_status: "",
     lessons_covered: true,
-    literacy_topic: '',
+    literacy_topic: "",
     discipline_issue: false,
-    discipline_details: '',
+    discipline_details: "",
     parent_communication: false,
-    parent_details: '',
-    challenges: '',
-  })
+    parent_details: "",
+    challenges: "",
+  });
 
   useEffect(() => {
-    loadTeacherClass()
-  }, [])
+    loadTeacherClass();
+  }, []);
 
   const loadTeacherClass = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      router.push('/auth/login')
-      return
+      router.push("/auth/login");
+      return;
     }
 
     const { data: teacherClass } = await supabase
-      .from('teacher_classes')
-      .select('class_id, classes(*)')
-      .eq('teacher_id', user.id)
-      .single()
+      .from("teacher_classes")
+      .select("class_id, classes(*)")
+      .eq("teacher_id", user.id)
+      .single();
 
     if (teacherClass) {
-      setMyClass(teacherClass.classes as unknown as Class)
+      setMyClass(teacherClass.classes as unknown as Class);
     }
 
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(null)
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !myClass) return
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user || !myClass) return;
 
     try {
-      const { error } = await supabase.from('daily_reports').insert({
+      const { error } = await supabase.from("daily_reports").insert({
         teacher_id: user.id,
         class_id: myClass.id,
         ...formData,
-      })
+      });
 
-      if (error) throw error
+      if (error) throw error;
 
-      router.push('/dashboard/teacher')
+      router.push("/dashboard/teacher");
     } catch (error: any) {
-      setError(error.message || 'Failed to submit report')
-      setSubmitting(false)
+      setError(error.message || "Failed to submit report");
+      setSubmitting(false);
     }
-  }
+  };
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   if (!myClass) {
@@ -86,26 +90,26 @@ export default function NewReportPage() {
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">No Class Assigned</h2>
       </div>
-    )
+    );
   }
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="bg-white shadow rounded-lg p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           Daily Class Report
         </h1>
-        <p className="text-lg text-gray-600 mb-6">
+        <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">
           {myClass.grade} - {myClass.stream}
         </p>
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -118,12 +122,12 @@ export default function NewReportPage() {
               onChange={(e) =>
                 setFormData({ ...formData, report_date: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+              className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base"
             />
           </div>
 
           {/* Attendance */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Total Learners <span className="text-red-600">*</span>
@@ -139,7 +143,7 @@ export default function NewReportPage() {
                     total_learners: parseInt(e.target.value),
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+                className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base"
               />
             </div>
             <div>
@@ -157,7 +161,7 @@ export default function NewReportPage() {
                     present_learners: parseInt(e.target.value),
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+                className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base"
               />
             </div>
           </div>
@@ -168,19 +172,19 @@ export default function NewReportPage() {
               Absentees (names)
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={formData.absentees}
               onChange={(e) =>
                 setFormData({ ...formData, absentees: e.target.value })
               }
               placeholder="List names of absent learners"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+              className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
             />
           </div>
 
           {/* Health Incident */}
           <div>
-            <label className="flex items-center space-x-3">
+            <label className="flex items-start sm:items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.health_incident}
@@ -190,7 +194,7 @@ export default function NewReportPage() {
                     health_incident: e.target.checked,
                   })
                 }
-                className="w-4 h-4 text-accent focus:ring-accent border-gray-300 rounded"
+                className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 sm:mt-0 text-accent focus:ring-accent border-gray-300 rounded"
               />
               <span className="text-sm font-medium text-gray-700">
                 Health/Safety Incident Occurred
@@ -204,7 +208,7 @@ export default function NewReportPage() {
                   setFormData({ ...formData, health_details: e.target.value })
                 }
                 placeholder="Describe the incident..."
-                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+                className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
               />
             )}
           </div>
@@ -221,13 +225,13 @@ export default function NewReportPage() {
                 setFormData({ ...formData, feeding_status: e.target.value })
               }
               placeholder="e.g., All learners fed, 5 learners missed meal"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+              className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base"
             />
           </div>
 
           {/* Lessons Covered */}
           <div>
-            <label className="flex items-center space-x-3">
+            <label className="flex items-start sm:items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.lessons_covered}
@@ -237,7 +241,7 @@ export default function NewReportPage() {
                     lessons_covered: e.target.checked,
                   })
                 }
-                className="w-4 h-4 text-accent focus:ring-accent border-gray-300 rounded"
+                className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 sm:mt-0 text-accent focus:ring-accent border-gray-300 rounded"
               />
               <span className="text-sm font-medium text-gray-700">
                 All Lessons Covered
@@ -257,13 +261,13 @@ export default function NewReportPage() {
                 setFormData({ ...formData, literacy_topic: e.target.value })
               }
               placeholder="e.g., Reading comprehension, Phonics"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+              className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base"
             />
           </div>
 
           {/* Discipline Issue */}
           <div>
-            <label className="flex items-center space-x-3">
+            <label className="flex items-start sm:items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.discipline_issue}
@@ -273,7 +277,7 @@ export default function NewReportPage() {
                     discipline_issue: e.target.checked,
                   })
                 }
-                className="w-4 h-4 text-accent focus:ring-accent border-gray-300 rounded"
+                className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 sm:mt-0 text-accent focus:ring-accent border-gray-300 rounded"
               />
               <span className="text-sm font-medium text-gray-700">
                 Discipline Issue Occurred
@@ -290,14 +294,14 @@ export default function NewReportPage() {
                   })
                 }
                 placeholder="Describe the issue..."
-                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+                className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
               />
             )}
           </div>
 
           {/* Parent Communication */}
           <div>
-            <label className="flex items-center space-x-3">
+            <label className="flex items-start sm:items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.parent_communication}
@@ -307,7 +311,7 @@ export default function NewReportPage() {
                     parent_communication: e.target.checked,
                   })
                 }
-                className="w-4 h-4 text-accent focus:ring-accent border-gray-300 rounded"
+                className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 sm:mt-0 text-accent focus:ring-accent border-gray-300 rounded"
               />
               <span className="text-sm font-medium text-gray-700">
                 Parent Communication Made
@@ -321,7 +325,7 @@ export default function NewReportPage() {
                   setFormData({ ...formData, parent_details: e.target.value })
                 }
                 placeholder="Describe the communication..."
-                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+                className="mt-2 w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
               />
             )}
           </div>
@@ -338,29 +342,29 @@ export default function NewReportPage() {
                 setFormData({ ...formData, challenges: e.target.value })
               }
               placeholder="Any challenges faced or support required..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"
+              className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent text-base resize-none"
             />
           </div>
 
           {/* Submit */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-md"
+              className="flex-1 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800 font-medium py-3.5 sm:py-3 px-4 rounded-md text-base"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-accent hover:bg-accent-dark text-white font-medium py-3 px-4 rounded-md disabled:opacity-50"
+              className="flex-1 bg-accent hover:bg-accent-dark active:bg-accent-dark text-white font-medium py-3.5 sm:py-3 px-4 rounded-md disabled:opacity-50 text-base"
             >
-              {submitting ? 'Submitting...' : 'Submit Report'}
+              {submitting ? "Submitting..." : "Submit Report"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }

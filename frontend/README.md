@@ -5,6 +5,7 @@
 ### Setup Instructions
 
 1. **Install Dependencies**
+
    ```bash
    cd frontend
    npm install
@@ -15,9 +16,11 @@
    - Your Supabase credentials are already configured in `.env.local`
 
 3. **Run Development Server**
+
    ```bash
    npm run dev
    ```
+
    Open [http://localhost:3000](http://localhost:3000)
 
 4. **Login Credentials**
@@ -49,16 +52,19 @@ frontend/
 ### Completed Features
 
 ✅ **Authentication**
+
 - Login page with email/password
 - Role-based redirect
 - Session management
 
 ✅ **Teacher Dashboard**
+
 - View assigned class
 - See recent reports
 - Submit new daily reports
 
 ✅ **Daily Reporting**
+
 - Complete form with all fields from PRD
 - Attendance tracking
 - Health, discipline, parent communication

@@ -39,6 +39,7 @@ leltra/
 Follow the detailed guide in [backend/supabase/README.md](backend/supabase/README.md)
 
 **Quick steps:**
+
 - Create Supabase project
 - Run `backend/supabase/schema.sql` in SQL Editor
 - Create admin user and add to profiles table
@@ -72,12 +73,14 @@ See [frontend/README.md](frontend/README.md) for details.
 ## Current Status
 
 ✅ **Phase 1 - MVP Complete**
+
 - Authentication system
 - Teacher dashboard
 - Daily reporting module
 - Database with RLS
 
 🚧 **In Progress**
+
 - Headteacher dashboard
 - Director analytics
 - Admin panel
