@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCachedSession, getCachedData } from "@/lib/session-cache";
 import { useRouter } from "next/navigation";
 import { Class, DailyReport } from "@/lib/types";
+import { DashboardSkeleton } from "@/components/loading";
 
 interface TeacherProfile {
   full_name: string;
@@ -24,6 +26,7 @@ export default function TeacherDashboard() {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [headComments, setHeadComments] = useState<HeadComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [stats, setStats] = useState({
     totalReports: 0,
     avgAttendance: 0,
@@ -32,120 +35,128 @@ export default function TeacherDashboard() {
   });
   const router = useRouter();
 
-  useEffect(() => {
-    loadTeacherData();
-  }, []);
-
-  const loadTeacherData = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-
-    // Get teacher profile
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("full_name, role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileData) {
-      setProfile(profileData);
-    }
-
-    // Get teacher's assigned class
-    const { data: teacherClass } = await supabase
-      .from("teacher_classes")
-      .select("class_id, classes(*)")
-      .eq("teacher_id", user.id)
-      .single();
-
-    if (teacherClass) {
-      setMyClass(teacherClass.classes as unknown as Class);
-
-      // Get all reports for stats
-      const { data: allReports } = await supabase
-        .from("daily_reports")
-        .select("*")
-        .eq("class_id", teacherClass.class_id);
-
-      if (allReports && allReports.length > 0) {
-        const totalPresent = allReports.reduce(
-          (sum, r) => sum + (r.present_learners || 0),
-          0,
-        );
-        const totalLearners = allReports.reduce(
-          (sum, r) => sum + (r.total_learners || 0),
-          0,
-        );
-        const healthCount = allReports.filter(
-          (r) => r.health_incidents && r.health_incidents.trim() !== "",
-        ).length;
-        const disciplineCount = allReports.filter(
-          (r) => r.discipline_incidents && r.discipline_incidents.trim() !== "",
-        ).length;
-
-        setStats({
-          totalReports: allReports.length,
-          avgAttendance:
-            totalLearners > 0
-              ? Math.round((totalPresent / totalLearners) * 100)
-              : 0,
-          healthIncidents: healthCount,
-          disciplineIncidents: disciplineCount,
-        });
+  const loadTeacherData = useCallback(async () => {
+    try {
+      // Use cached session for faster auth check
+      const session = await getCachedSession();
+      if (!session.user) {
+        router.push("/auth/login");
+        return;
       }
 
-      // Get recent reports
-      const { data: reportsData } = await supabase
-        .from("daily_reports")
-        .select("*")
-        .eq("class_id", teacherClass.class_id)
-        .order("report_date", { ascending: false })
-        .limit(7);
+      // Set profile immediately from cache
+      if (session.profile) {
+        setProfile({
+          full_name: session.profile.full_name,
+          role: session.profile.role,
+        });
+      }
+      setLoading(false);
 
-      if (reportsData) {
-        setReports(reportsData);
+      // Load class data (can be cached)
+      const teacherClass = await getCachedData(
+        `teacher_class_${session.user.id}`,
+        async () => {
+          const { data } = await supabase
+            .from("teacher_classes")
+            .select("class_id, classes(*)")
+            .eq("teacher_id", session.user!.id)
+            .single();
+          return data;
+        }
+      );
 
-        // Get headteacher comments for these reports
-        const reportIds = reportsData.map((r) => r.id);
-        if (reportIds.length > 0) {
-          const { data: commentsData } = await supabase
-            .from("head_comments")
-            .select(
-              `
+      if (teacherClass) {
+        setMyClass(teacherClass.classes as unknown as Class);
+
+        // Load reports and stats in parallel
+        const [allReports, recentReports] = await Promise.all([
+          supabase
+            .from("daily_reports")
+            .select("*")
+            .eq("class_id", teacherClass.class_id),
+          supabase
+            .from("daily_reports")
+            .select("*")
+            .eq("class_id", teacherClass.class_id)
+            .order("report_date", { ascending: false })
+            .limit(7),
+        ]);
+
+        if (allReports.data && allReports.data.length > 0) {
+          const totalPresent = allReports.data.reduce(
+            (sum, r) => sum + (r.present_learners || 0),
+            0,
+          );
+          const totalLearners = allReports.data.reduce(
+            (sum, r) => sum + (r.total_learners || 0),
+            0,
+          );
+          const healthCount = allReports.data.filter(
+            (r) => r.health_incident
+          ).length;
+          const disciplineCount = allReports.data.filter(
+            (r) => r.discipline_issue
+          ).length;
+
+          setStats({
+            totalReports: allReports.data.length,
+            avgAttendance:
+              totalLearners > 0
+                ? Math.round((totalPresent / totalLearners) * 100)
+                : 0,
+            healthIncidents: healthCount,
+            disciplineIncidents: disciplineCount,
+          });
+        }
+
+        if (recentReports.data) {
+          setReports(recentReports.data);
+
+          // Get headteacher comments for these reports
+          const reportIds = recentReports.data.map((r) => r.id);
+          if (reportIds.length > 0) {
+            const { data: commentsData } = await supabase
+              .from("head_comments")
+              .select(
+                `
               id,
               comment,
               created_at,
               daily_reports!inner(report_date),
               profiles!head_comments_author_id_fkey(full_name)
             `,
-            )
-            .in("report_id", reportIds)
-            .order("created_at", { ascending: false })
-            .limit(5);
+              )
+              .in("report_id", reportIds)
+              .order("created_at", { ascending: false })
+              .limit(5);
 
-          if (commentsData) {
-            const formattedComments: HeadComment[] = commentsData.map(
-              (c: any) => ({
-                id: c.id,
-                comment: c.comment,
-                created_at: c.created_at,
-                report_date: c.daily_reports?.report_date || "",
-                author_name: c.profiles?.full_name || "Headteacher",
-              }),
-            );
-            setHeadComments(formattedComments);
+            if (commentsData) {
+              const formattedComments: HeadComment[] = commentsData.map(
+                (c: any) => ({
+                  id: c.id,
+                  comment: c.comment,
+                  created_at: c.created_at,
+                  report_date: c.daily_reports?.report_date || "",
+                  author_name: c.profiles?.full_name || "Headteacher",
+                }),
+              );
+              setHeadComments(formattedComments);
+            }
           }
         }
       }
+      setDataLoading(false);
+    } catch (error) {
+      console.error("Error loading teacher data:", error);
+      setLoading(false);
+      setDataLoading(false);
     }
+  }, [router]);
 
-    setLoading(false);
-  };
+  useEffect(() => {
+    loadTeacherData();
+  }, [loadTeacherData]);
 
   const getTodayDate = () => {
     return new Date().toISOString().split("T")[0];
@@ -164,16 +175,7 @@ export default function TeacherDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-200 border-t-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">
-            Loading your dashboard...
-          </p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!myClass) {

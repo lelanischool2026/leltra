@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { clearSessionCache } from "@/lib/session-cache";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -18,6 +19,9 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      // Clear any existing cache
+      clearSessionCache();
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -35,22 +39,22 @@ export default function LoginPage() {
 
         if (profileError) throw profileError;
 
-        // Redirect based on role
+        // Use replace for instant navigation (no back button to login)
         switch (profile.role) {
           case "teacher":
-            router.push("/dashboard/teacher");
+            router.replace("/dashboard/teacher");
             break;
           case "headteacher":
-            router.push("/dashboard/headteacher");
+            router.replace("/dashboard/headteacher");
             break;
           case "director":
-            router.push("/dashboard/director");
+            router.replace("/dashboard/director");
             break;
           case "admin":
-            router.push("/admin/users");
+            router.replace("/admin/users");
             break;
           default:
-            router.push("/dashboard/teacher");
+            router.replace("/dashboard/teacher");
         }
       }
     } catch (error: any) {

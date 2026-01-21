@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/components/loading";
 
 interface ReportWithDetails {
   id: string;
@@ -63,50 +64,45 @@ export default function HeadteacherDashboard() {
     "all" | "issues" | "pending" | "critical"
   >("all");
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [selectedDate]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true);
 
-    // Get total classes count
-    const { count: totalClasses } = await supabase
-      .from("classes")
-      .select("*", { count: "exact", head: true })
-      .eq("active", true);
+    // Run all queries in parallel for faster loading
+    const [classesResult, reportsResult, incidentsResult] = await Promise.all([
+      supabase
+        .from("classes")
+        .select("*", { count: "exact", head: true })
+        .eq("active", true),
+      supabase
+        .from("daily_reports")
+        .select(
+          `
+          *,
+          classes(grade, stream),
+          profiles(full_name),
+          head_comments(id, comment)
+        `,
+        )
+        .eq("report_date", selectedDate)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("incidents")
+        .select(
+          `
+          *,
+          classes(grade, stream),
+          profiles(full_name)
+        `,
+        )
+        .eq("incident_date", selectedDate)
+        .in("severity", ["critical", "high"])
+        .eq("resolved", false)
+        .order("severity", { ascending: true }),
+    ]);
 
-    // Get reports for selected date with all related data
-    const { data: reportsData } = await supabase
-      .from("daily_reports")
-      .select(
-        `
-        *,
-        classes(grade, stream),
-        profiles(full_name),
-        head_comments(id, comment)
-      `,
-      )
-      .eq("report_date", selectedDate)
-      .order("created_at", { ascending: false });
-
-    // Get critical/high severity incidents for today (unresolved)
-    const { data: incidentsData } = await supabase
-      .from("incidents")
-      .select(
-        `
-        *,
-        classes(grade, stream),
-        profiles(full_name)
-      `,
-      )
-      .eq("incident_date", selectedDate)
-      .in("severity", ["critical", "high"])
-      .eq("resolved", false)
-      .order("severity", { ascending: true });
-
-    const reports = (reportsData as ReportWithDetails[]) || [];
-    const incidents = (incidentsData as Incident[]) || [];
+    const totalClasses = classesResult.count;
+    const reports = (reportsResult.data as ReportWithDetails[]) || [];
+    const incidents = (incidentsResult.data as Incident[]) || [];
 
     // Calculate stats
     const totalStudents = reports.reduce((sum, r) => sum + r.total_learners, 0);
@@ -137,7 +133,11 @@ export default function HeadteacherDashboard() {
     setCriticalAlerts(incidents);
     setReports(reports);
     setLoading(false);
-  };
+  }, [selectedDate]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleAddComment = async () => {
     if (!selectedReport || !comment.trim()) return;
@@ -195,11 +195,7 @@ export default function HeadteacherDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

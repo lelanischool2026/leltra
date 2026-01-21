@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/components/loading";
 import {
   LineChart,
   Line,
@@ -130,30 +131,32 @@ export default function DirectorDashboard() {
     setLoading(true);
 
     try {
-      // Get teachers count
-      const { count: teachersCount } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "teacher");
+      // Run all initial queries in parallel for faster loading
+      const [teachersResult, classesResult, reportsResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("role", "teacher"),
+        supabase
+          .from("classes")
+          .select("*", { count: "exact", head: true })
+          .eq("active", true),
+        supabase
+          .from("daily_reports")
+          .select(
+            `
+            *,
+            classes(id, grade, stream)
+          `,
+          )
+          .gte("report_date", dateRange.start)
+          .lte("report_date", dateRange.end)
+          .order("report_date", { ascending: true }),
+      ]);
 
-      // Get active classes count
-      const { count: classesCount } = await supabase
-        .from("classes")
-        .select("*", { count: "exact", head: true })
-        .eq("active", true);
-
-      // Get reports for date range
-      const { data: reports } = await supabase
-        .from("daily_reports")
-        .select(
-          `
-          *,
-          classes(id, grade, stream)
-        `,
-        )
-        .gte("report_date", dateRange.start)
-        .lte("report_date", dateRange.end)
-        .order("report_date", { ascending: true });
+      const teachersCount = teachersResult.count;
+      const classesCount = classesResult.count;
+      const reports = reportsResult.data;
 
       if (reports) {
         // Process daily stats for charts
@@ -350,11 +353,7 @@ export default function DirectorDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

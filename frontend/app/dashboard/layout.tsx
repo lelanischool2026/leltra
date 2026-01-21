@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCachedSession, clearSessionCache } from "@/lib/session-cache";
 import { useRouter, usePathname } from "next/navigation";
 import { Profile } from "@/lib/types";
 import Link from "next/link";
@@ -17,38 +18,37 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  const checkUser = useCallback(async () => {
+    try {
+      // Use cached session for instant loading
+      const session = await getCachedSession();
+
+      if (!session.user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      if (!session.profile) {
+        clearSessionCache();
+        await supabase.auth.signOut();
+        router.push("/auth/login");
+        return;
+      }
+
+      setProfile(session.profile);
+      setLoading(false);
+    } catch (error) {
+      console.error("Auth error:", error);
+      router.push("/auth/login");
+    }
+  }, [router]);
+
   useEffect(() => {
     checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-
-    // Get user profile
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (error || !profile) {
-      await supabase.auth.signOut();
-      router.push("/auth/login");
-      return;
-    }
-
-    setProfile(profile);
-    setLoading(false);
-  };
+  }, [checkUser]);
 
   const handleLogout = async () => {
+    clearSessionCache();
     await supabase.auth.signOut();
     router.push("/auth/login");
   };
@@ -80,10 +80,12 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-gray-200 border-t-primary animate-spin" />
+          </div>
+          <p className="text-gray-500 text-sm font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -100,6 +102,7 @@ export default function DashboardLayout({
               <Link
                 href={navItems[0]?.href || "/dashboard/teacher"}
                 className="flex items-center gap-2"
+                prefetch={true}
               >
                 <img
                   src="/lslogo.png"
@@ -115,6 +118,7 @@ export default function DashboardLayout({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       pathname === item.href
                         ? "bg-accent text-white"
@@ -181,6 +185,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`block px-3 py-3 rounded-md text-base font-medium ${
                     pathname === item.href
