@@ -189,23 +189,45 @@ export default function AdminUsersPage() {
       return;
     }
 
+    if (createFormData.password.length < 6) {
+      setMessage({ type: "error", text: "Password must be at least 6 characters" });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
 
     try {
-      // Note: In production, you would use Supabase Admin API or Edge Functions
-      // For now, we'll show instructions to create users via Supabase Dashboard
-      setMessage({
-        type: "error",
-        text: "To create new users, please use Supabase Dashboard → Authentication → Add User. Then add them to profiles table with the SQL shown in the setup guide.",
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: createFormData.email,
+          password: createFormData.password,
+          full_name: createFormData.full_name,
+          role: createFormData.role,
+          class_id: createFormData.class_id || null,
+        }),
       });
 
-      // The code below would work with Supabase Admin API (server-side)
-      // const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      //   email: createFormData.email,
-      //   password: createFormData.password,
-      //   email_confirm: true,
-      // });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create user');
+      }
+
+      setMessage({ type: "success", text: `User "${data.user.full_name}" created successfully!` });
+      setShowCreateModal(false);
+      setCreateFormData({
+        email: "",
+        password: "",
+        full_name: "",
+        role: "teacher",
+        class_id: "",
+      });
+      loadData();
     } catch (error: any) {
       setMessage({ type: "error", text: error.message });
     } finally {
@@ -567,57 +589,115 @@ export default function AdminUsersPage() {
                 Create a new teacher, headteacher, or administrator account
               </p>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h4 className="font-medium text-blue-800 mb-2">
-                  📋 Instructions
-                </h4>
-                <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
-                  <li>
-                    Go to <strong>Supabase Dashboard</strong> →{" "}
-                    <strong>Authentication</strong> → <strong>Users</strong>
-                  </li>
-                  <li>
-                    Click <strong>"Add user"</strong> →{" "}
-                    <strong>"Create new user"</strong>
-                  </li>
-                  <li>
-                    Enter email, password, and check{" "}
-                    <strong>"Auto Confirm User"</strong>
-                  </li>
-                  <li>
-                    Copy the new <strong>User ID</strong>
-                  </li>
-                  <li>
-                    Go to <strong>SQL Editor</strong> and run:
-                  </li>
-                </ol>
-                <pre className="mt-3 bg-blue-100 p-3 rounded text-xs overflow-x-auto">
-                  {`INSERT INTO profiles (id, full_name, role)
-VALUES (
-  'paste-user-id-here',
-  'Teacher Name',
-  'teacher'  -- or 'headteacher', 'director', 'admin'
-);`}
-                </pre>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={createFormData.full_name}
+                    onChange={(e) =>
+                      setCreateFormData({ ...createFormData, full_name: e.target.value })
+                    }
+                    placeholder="e.g., Jane Doe"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={createFormData.email}
+                    onChange={(e) =>
+                      setCreateFormData({ ...createFormData, email: e.target.value })
+                    }
+                    placeholder="e.g., teacher@lelani.school"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={createFormData.password}
+                    onChange={(e) =>
+                      setCreateFormData({ ...createFormData, password: e.target.value })
+                    }
+                    placeholder="Minimum 6 characters"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={createFormData.role}
+                    onChange={(e) =>
+                      setCreateFormData({ ...createFormData, role: e.target.value })
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                  >
+                    <option value="teacher">Teacher</option>
+                    <option value="headteacher">Headteacher</option>
+                    <option value="director">Director</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {createFormData.role === "teacher" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Assign to Class
+                    </label>
+                    <select
+                      value={createFormData.class_id}
+                      onChange={(e) =>
+                        setCreateFormData({ ...createFormData, class_id: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                    >
+                      <option value="">Select a class (optional)...</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.grade} - {cls.stream}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-yellow-800">
-                  <strong>💡 Tip:</strong> For teachers, also assign them to a
-                  class:
-                </p>
-                <pre className="mt-2 bg-yellow-100 p-3 rounded text-xs overflow-x-auto">
-                  {`INSERT INTO teacher_classes (teacher_id, class_id)
-VALUES ('teacher-id', 'class-id');`}
-                </pre>
-              </div>
-
-              <div className="flex justify-end">
+              <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
                 <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateFormData({
+                      email: "",
+                      password: "",
+                      full_name: "",
+                      role: "teacher",
+                      class_id: "",
+                    });
+                  }}
+                  className="w-full sm:w-auto px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium transition-colors"
                 >
-                  Close
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateUser}
+                  disabled={saving}
+                  className="w-full sm:w-auto px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent-dark font-medium transition-colors disabled:opacity-50"
+                >
+                  {saving ? "Creating..." : "Create User"}
                 </button>
               </div>
             </div>
