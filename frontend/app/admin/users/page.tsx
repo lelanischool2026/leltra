@@ -9,6 +9,8 @@ interface UserWithClass extends Profile {
     grade: string;
     stream: string;
   };
+  assigned_class_id?: string;
+  email?: string;
 }
 
 interface ActivityLog {
@@ -25,6 +27,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserWithClass | null>(null);
   const [editingUser, setEditingUser] = useState<UserWithClass | null>(null);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -39,6 +43,7 @@ export default function AdminUsersPage() {
     class_id: "",
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -53,7 +58,7 @@ export default function AdminUsersPage() {
   const loadData = async () => {
     setLoading(true);
 
-    // Load all users
+    // Load all users with their emails from auth
     const { data: profiles } = await supabase
       .from("profiles")
       .select("*")
@@ -80,6 +85,7 @@ export default function AdminUsersPage() {
           assigned_class: assignment?.classes as
             | { grade: string; stream: string }
             | undefined,
+          assigned_class_id: assignment?.class_id,
         };
       }) || [];
 
@@ -128,9 +134,41 @@ export default function AdminUsersPage() {
     setFormData({
       full_name: user.full_name,
       role: user.role,
-      class_id: "",
+      class_id: user.assigned_class_id || "",
     });
     setShowModal(true);
+  };
+
+  const handleDelete = (user: UserWithClass) => {
+    setDeletingUser(user);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingUser) return;
+    setDeleting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/delete-user?userId=${deletingUser.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete user');
+      }
+
+      setMessage({ type: "success", text: `User "${deletingUser.full_name}" deleted successfully!` });
+      setShowDeleteModal(false);
+      setDeletingUser(null);
+      loadData();
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -402,12 +440,20 @@ export default function AdminUsersPage() {
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleEdit(user)}
-                    className="text-accent hover:text-accent-dark font-medium text-sm"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="text-accent hover:text-accent-dark font-medium text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user)}
+                      className="text-red-500 hover:text-red-700 font-medium text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -467,12 +513,20 @@ export default function AdminUsersPage() {
                         : "—"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleEdit(user)}
-                        className="text-accent hover:text-accent-dark font-medium transition-colors"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="text-accent hover:text-accent-dark font-medium transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user)}
+                          className="text-red-500 hover:text-red-700 font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -492,9 +546,19 @@ export default function AdminUsersPage() {
             ></div>
 
             <div className="relative inline-block w-full max-w-md p-6 my-8 text-left align-middle bg-white shadow-xl rounded-2xl transform transition-all">
-              <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                Edit User
-              </h3>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xl font-bold">
+                  {editingUser.full_name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Edit User
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Update user information
+                  </p>
+                </div>
+              </div>
 
               <div className="space-y-4">
                 <div>
@@ -508,6 +572,18 @@ export default function AdminUsersPage() {
                       setFormData({ ...formData, full_name: e.target.value })
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    User ID
+                  </label>
+                  <input
+                    type="text"
+                    value={editingUser.id}
+                    disabled
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm font-mono"
                   />
                 </div>
 
@@ -529,27 +605,33 @@ export default function AdminUsersPage() {
                   </select>
                 </div>
 
-                {formData.role === "teacher" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Assign to Class
-                    </label>
-                    <select
-                      value={formData.class_id}
-                      onChange={(e) =>
-                        setFormData({ ...formData, class_id: e.target.value })
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
-                    >
-                      <option value="">Select a class...</option>
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.grade} - {cls.stream}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Assign to Class {formData.role !== "teacher" && <span className="text-gray-400">(Teachers only)</span>}
+                  </label>
+                  <select
+                    value={formData.class_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, class_id: e.target.value })
+                    }
+                    disabled={formData.role !== "teacher"}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent ${
+                      formData.role !== "teacher" ? "bg-gray-100 text-gray-500" : ""
+                    }`}
+                  >
+                    <option value="">No class assigned</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.grade} - {cls.stream}
+                      </option>
+                    ))}
+                  </select>
+                  {editingUser.assigned_class && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Currently assigned: {editingUser.assigned_class.grade} - {editingUser.assigned_class.stream}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
@@ -698,6 +780,67 @@ export default function AdminUsersPage() {
                   className="w-full sm:w-auto px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent-dark font-medium transition-colors disabled:opacity-50"
                 >
                   {saving ? "Creating..." : "Create User"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingUser && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeletingUser(null);
+              }}
+            ></div>
+
+            <div className="relative inline-block w-full max-w-md p-6 my-8 text-left align-middle bg-white shadow-xl rounded-2xl transform transition-all">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Delete User
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <p className="text-gray-700">
+                  Are you sure you want to delete <strong>{deletingUser.full_name}</strong>?
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  This will permanently remove the user account, their profile, and all class assignments.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingUser(null);
+                  }}
+                  className="w-full sm:w-auto px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleting}
+                  className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50"
+                >
+                  {deleting ? "Deleting..." : "Delete User"}
                 </button>
               </div>
             </div>
