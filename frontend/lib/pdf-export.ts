@@ -54,19 +54,21 @@ interface WeeklySummaryPDFData {
 const SCHOOL_LOGO_BASE64 =
   "data:image/png;base64,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";
 
-// Premium color palette
+// Lelani School Brand Colors - Red and Black theme
 const COLORS = {
-  primary: [79, 70, 229] as [number, number, number], // Indigo
-  primaryLight: [238, 242, 255] as [number, number, number], // Indigo light
-  secondary: [16, 185, 129] as [number, number, number], // Emerald
+  primary: [227, 30, 36] as [number, number, number], // Lelani Red (#E31E24)
+  primaryLight: [254, 242, 242] as [number, number, number], // Light red tint
+  primaryDark: [180, 20, 25] as [number, number, number], // Darker red
+  secondary: [33, 33, 33] as [number, number, number], // Black/Dark gray
+  accent: [16, 185, 129] as [number, number, number], // Emerald for success
   warning: [245, 158, 11] as [number, number, number], // Amber
-  danger: [239, 68, 68] as [number, number, number], // Red
+  danger: [220, 38, 38] as [number, number, number], // Darker red for alerts
   dangerLight: [254, 226, 226] as [number, number, number], // Red light
   warningLight: [254, 243, 199] as [number, number, number], // Amber light
   dark: [31, 41, 55] as [number, number, number], // Gray-800
   medium: [107, 114, 128] as [number, number, number], // Gray-500
   light: [156, 163, 175] as [number, number, number], // Gray-400
-  background: [249, 250, 251] as [number, number, number], // Gray-50
+  background: [255, 255, 255] as [number, number, number], // White background
   white: [255, 255, 255] as [number, number, number],
 };
 
