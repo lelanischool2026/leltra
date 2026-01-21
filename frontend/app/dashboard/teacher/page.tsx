@@ -111,29 +111,33 @@ export default function TeacherDashboard() {
         setReports(reportsData);
 
         // Get headteacher comments for these reports
-        const reportIds = reportsData.map(r => r.id);
+        const reportIds = reportsData.map((r) => r.id);
         if (reportIds.length > 0) {
           const { data: commentsData } = await supabase
             .from("head_comments")
-            .select(`
+            .select(
+              `
               id,
               comment,
               created_at,
               daily_reports!inner(report_date),
               profiles!head_comments_author_id_fkey(full_name)
-            `)
+            `,
+            )
             .in("report_id", reportIds)
             .order("created_at", { ascending: false })
             .limit(5);
 
           if (commentsData) {
-            const formattedComments: HeadComment[] = commentsData.map((c: any) => ({
-              id: c.id,
-              comment: c.comment,
-              created_at: c.created_at,
-              report_date: c.daily_reports?.report_date || "",
-              author_name: c.profiles?.full_name || "Headteacher",
-            }));
+            const formattedComments: HeadComment[] = commentsData.map(
+              (c: any) => ({
+                id: c.id,
+                comment: c.comment,
+                created_at: c.created_at,
+                report_date: c.daily_reports?.report_date || "",
+                author_name: c.profiles?.full_name || "Headteacher",
+              }),
+            );
             setHeadComments(formattedComments);
           }
         }
@@ -582,7 +586,7 @@ export default function TeacherDashboard() {
                             {report.present_learners}/{report.total_learners}{" "}
                             present
                           </span>
-                          {report.health_incidents && (
+                          {report.health_incident && (
                             <span className="flex items-center gap-1 text-red-500">
                               <svg
                                 className="w-4 h-4"
@@ -600,7 +604,7 @@ export default function TeacherDashboard() {
                               Health
                             </span>
                           )}
-                          {report.discipline_incidents && (
+                          {report.discipline_issue && (
                             <span className="flex items-center gap-1 text-amber-500">
                               <svg
                                 className="w-4 h-4"
@@ -729,23 +733,30 @@ export default function TeacherDashboard() {
                             {comment.author_name}
                           </p>
                           <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
-                            {new Date(comment.report_date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })} Report
+                            {new Date(comment.report_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}{" "}
+                            Report
                           </span>
                         </div>
                         <p className="text-gray-700 mt-2 leading-relaxed">
                           {comment.comment}
                         </p>
                         <p className="text-xs text-gray-400 mt-2">
-                          {new Date(comment.created_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
+                          {new Date(comment.created_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            },
+                          )}
                         </p>
                       </div>
                     </div>
