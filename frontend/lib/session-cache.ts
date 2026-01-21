@@ -63,11 +63,15 @@ const DATA_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 export async function getCachedData<T>(
   key: string,
   fetcher: () => Promise<T>,
-  forceRefresh = false
+  forceRefresh = false,
 ): Promise<T> {
   const cached = dataCache.get(key);
-  
-  if (!forceRefresh && cached && Date.now() - cached.timestamp < DATA_CACHE_DURATION) {
+
+  if (
+    !forceRefresh &&
+    cached &&
+    Date.now() - cached.timestamp < DATA_CACHE_DURATION
+  ) {
     return cached.data as T;
   }
 

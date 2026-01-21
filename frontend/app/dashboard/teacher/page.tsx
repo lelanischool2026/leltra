@@ -63,7 +63,7 @@ export default function TeacherDashboard() {
             .eq("teacher_id", session.user!.id)
             .single();
           return data;
-        }
+        },
       );
 
       if (teacherClass) {
@@ -93,10 +93,10 @@ export default function TeacherDashboard() {
             0,
           );
           const healthCount = allReports.data.filter(
-            (r) => r.health_incident
+            (r) => r.health_incident,
           ).length;
           const disciplineCount = allReports.data.filter(
-            (r) => r.discipline_issue
+            (r) => r.discipline_issue,
           ).length;
 
           setStats({

@@ -21,9 +21,9 @@ export default function LoginPage() {
     try {
       // Clear any existing cache
       clearSessionCache();
-      
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -39,27 +39,35 @@ export default function LoginPage() {
 
         if (profileError) throw profileError;
 
-        // Use replace for instant navigation (no back button to login)
+        // Small delay to ensure session is fully established before navigation
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Determine redirect path
+        let redirectPath = "/dashboard/teacher";
         switch (profile.role) {
           case "teacher":
-            router.replace("/dashboard/teacher");
+            redirectPath = "/dashboard/teacher";
             break;
           case "headteacher":
-            router.replace("/dashboard/headteacher");
+            redirectPath = "/dashboard/headteacher";
             break;
           case "director":
-            router.replace("/dashboard/director");
+            redirectPath = "/dashboard/director";
             break;
           case "admin":
-            router.replace("/admin/users");
+            redirectPath = "/admin/users";
             break;
-          default:
-            router.replace("/dashboard/teacher");
         }
+
+        // Use window.location for more reliable mobile navigation
+        window.location.href = redirectPath;
       }
     } catch (error: any) {
+      // Ignore abort errors (caused by navigation)
+      if (error.name === 'AbortError') {
+        return;
+      }
       setError(error.message || "Failed to login");
-    } finally {
       setLoading(false);
     }
   };
