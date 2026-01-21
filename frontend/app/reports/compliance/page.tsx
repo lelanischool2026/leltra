@@ -49,8 +49,10 @@ export default function CompliancePage() {
     perfectClasses: 0,
     missingClasses: 0,
   });
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  
+  const [selectedDate, setSelectedDate] = useState(
+    format(new Date(), "yyyy-MM-dd"),
+  );
+
   const router = useRouter();
 
   useEffect(() => {
@@ -58,7 +60,9 @@ export default function CompliancePage() {
   }, [timeRange]);
 
   async function checkAuthAndLoad() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       router.push("/auth/login");
       return;
@@ -70,7 +74,10 @@ export default function CompliancePage() {
       .eq("id", session.user.id)
       .single();
 
-    if (!profile || !["headteacher", "director", "admin"].includes(profile.role)) {
+    if (
+      !profile ||
+      !["headteacher", "director", "admin"].includes(profile.role)
+    ) {
       router.push("/dashboard/teacher");
       return;
     }
@@ -106,7 +113,8 @@ export default function CompliancePage() {
     // Fetch all active classes with their assigned teachers
     const { data: classes } = await supabase
       .from("classes")
-      .select(`
+      .select(
+        `
         id,
         grade,
         stream,
@@ -114,7 +122,8 @@ export default function CompliancePage() {
           teacher_id,
           profiles(full_name)
         )
-      `)
+      `,
+      )
       .eq("active", true);
 
     if (!classes) {
@@ -136,70 +145,89 @@ export default function CompliancePage() {
     });
 
     // Calculate compliance per class
-    const classData: ClassCompliance[] = classes.map((cls: any) => {
-      const teacherAssignment = cls.teacher_classes?.[0];
-      const teacherName = teacherAssignment?.profiles?.full_name || "Unassigned";
-      const teacherId = teacherAssignment?.teacher_id || "";
+    const classData: ClassCompliance[] = classes
+      .map((cls: any) => {
+        const teacherAssignment = cls.teacher_classes?.[0];
+        const teacherName =
+          teacherAssignment?.profiles?.full_name || "Unassigned";
+        const teacherId = teacherAssignment?.teacher_id || "";
 
-      const missingDates: string[] = [];
-      let submitted = 0;
+        const missingDates: string[] = [];
+        let submitted = 0;
 
-      allDays.forEach((date) => {
-        if (submittedSet.has(`${cls.id}-${date}`)) {
-          submitted++;
-        } else {
-          missingDates.push(date);
-        }
-      });
+        allDays.forEach((date) => {
+          if (submittedSet.has(`${cls.id}-${date}`)) {
+            submitted++;
+          } else {
+            missingDates.push(date);
+          }
+        });
 
-      return {
-        classId: cls.id,
-        grade: cls.grade,
-        stream: cls.stream,
-        teacherName,
-        teacherId,
-        totalExpected: allDays.length,
-        totalSubmitted: submitted,
-        complianceRate: allDays.length > 0 ? Math.round((submitted / allDays.length) * 100) : 0,
-        missingDates,
-      };
-    }).sort((a, b) => a.complianceRate - b.complianceRate);
+        return {
+          classId: cls.id,
+          grade: cls.grade,
+          stream: cls.stream,
+          teacherName,
+          teacherId,
+          totalExpected: allDays.length,
+          totalSubmitted: submitted,
+          complianceRate:
+            allDays.length > 0
+              ? Math.round((submitted / allDays.length) * 100)
+              : 0,
+          missingDates,
+        };
+      })
+      .sort((a, b) => a.complianceRate - b.complianceRate);
 
     setClassCompliance(classData);
 
     // Calculate daily compliance
-    const dailyData: DailyCompliance[] = allDays.map((date) => {
-      const totalClasses = classes.length;
-      let submitted = 0;
+    const dailyData: DailyCompliance[] = allDays
+      .map((date) => {
+        const totalClasses = classes.length;
+        let submitted = 0;
 
-      classes.forEach((cls: any) => {
-        if (submittedSet.has(`${cls.id}-${date}`)) {
-          submitted++;
-        }
-      });
+        classes.forEach((cls: any) => {
+          if (submittedSet.has(`${cls.id}-${date}`)) {
+            submitted++;
+          }
+        });
 
-      return {
-        date,
-        displayDate: format(parseISO(date), "EEE, MMM d"),
-        totalClasses,
-        submitted,
-        missing: totalClasses - submitted,
-        complianceRate: totalClasses > 0 ? Math.round((submitted / totalClasses) * 100) : 0,
-      };
-    }).reverse(); // Most recent first
+        return {
+          date,
+          displayDate: format(parseISO(date), "EEE, MMM d"),
+          totalClasses,
+          submitted,
+          missing: totalClasses - submitted,
+          complianceRate:
+            totalClasses > 0 ? Math.round((submitted / totalClasses) * 100) : 0,
+        };
+      })
+      .reverse(); // Most recent first
 
     setDailyCompliance(dailyData);
 
     // Calculate overall stats
     const totalExpected = classes.length * allDays.length;
-    const totalSubmitted = classData.reduce((sum, c) => sum + c.totalSubmitted, 0);
-    const perfectClasses = classData.filter((c) => c.complianceRate === 100).length;
-    const missingClasses = classData.filter((c) => c.complianceRate < 100).length;
+    const totalSubmitted = classData.reduce(
+      (sum, c) => sum + c.totalSubmitted,
+      0,
+    );
+    const perfectClasses = classData.filter(
+      (c) => c.complianceRate === 100,
+    ).length;
+    const missingClasses = classData.filter(
+      (c) => c.complianceRate < 100,
+    ).length;
 
     setOverallStats({
       totalExpected,
       totalSubmitted,
-      complianceRate: totalExpected > 0 ? Math.round((totalSubmitted / totalExpected) * 100) : 0,
+      complianceRate:
+        totalExpected > 0
+          ? Math.round((totalSubmitted / totalExpected) * 100)
+          : 0,
       perfectClasses,
       missingClasses,
     });
@@ -248,15 +276,29 @@ export default function CompliancePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Report Submission Compliance</h1>
-              <p className="text-gray-600 mt-1">Track which teachers have submitted their daily reports</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Report Submission Compliance
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Track which teachers have submitted their daily reports
+              </p>
             </div>
             <button
               onClick={handleExportCSV}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               Export CSV
             </button>
@@ -289,18 +331,30 @@ export default function CompliancePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-xl shadow-md p-5">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                overallStats.complianceRate >= 90 ? 'bg-green-100' : 
-                overallStats.complianceRate >= 75 ? 'bg-yellow-100' : 'bg-red-100'
-              }`}>
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  overallStats.complianceRate >= 90
+                    ? "bg-green-100"
+                    : overallStats.complianceRate >= 75
+                      ? "bg-yellow-100"
+                      : "bg-red-100"
+                }`}
+              >
                 <span className="text-2xl">📊</span>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Overall Compliance</p>
-                <p className={`text-2xl font-bold ${
-                  overallStats.complianceRate >= 90 ? 'text-green-600' : 
-                  overallStats.complianceRate >= 75 ? 'text-yellow-600' : 'text-red-600'
-                }`}>{overallStats.complianceRate}%</p>
+                <p
+                  className={`text-2xl font-bold ${
+                    overallStats.complianceRate >= 90
+                      ? "text-green-600"
+                      : overallStats.complianceRate >= 75
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                  }`}
+                >
+                  {overallStats.complianceRate}%
+                </p>
               </div>
             </div>
           </div>
@@ -326,23 +380,37 @@ export default function CompliancePage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">100% Compliance</p>
-                <p className="text-2xl font-bold text-green-600">{overallStats.perfectClasses}</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {overallStats.perfectClasses}
+                </p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-md p-5">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                overallStats.missingClasses === 0 ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                <span className="text-2xl">{overallStats.missingClasses === 0 ? '🎉' : '⚠️'}</span>
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  overallStats.missingClasses === 0
+                    ? "bg-green-100"
+                    : "bg-red-100"
+                }`}
+              >
+                <span className="text-2xl">
+                  {overallStats.missingClasses === 0 ? "🎉" : "⚠️"}
+                </span>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Missing Reports</p>
-                <p className={`text-2xl font-bold ${
-                  overallStats.missingClasses === 0 ? 'text-green-600' : 'text-red-600'
-                }`}>{overallStats.totalExpected - overallStats.totalSubmitted}</p>
+                <p
+                  className={`text-2xl font-bold ${
+                    overallStats.missingClasses === 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {overallStats.totalExpected - overallStats.totalSubmitted}
+                </p>
               </div>
             </div>
           </div>
@@ -352,37 +420,58 @@ export default function CompliancePage() {
           {/* Class Compliance Table */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Compliance by Class</h2>
-              <p className="text-sm text-gray-500 mt-1">Sorted by lowest compliance first</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Compliance by Class
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Sorted by lowest compliance first
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Class</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Teacher</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Submitted</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Rate</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                      Class
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                      Teacher
+                    </th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                      Submitted
+                    </th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                      Rate
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {classCompliance.map((cls) => (
-                    <tr key={cls.classId} className={`hover:bg-gray-50 ${cls.complianceRate < 100 ? 'bg-red-50' : ''}`}>
+                    <tr
+                      key={cls.classId}
+                      className={`hover:bg-gray-50 ${cls.complianceRate < 100 ? "bg-red-50" : ""}`}
+                    >
                       <td className="py-3 px-4">
-                        <span className="font-medium text-gray-900">{cls.grade} - {cls.stream}</span>
+                        <span className="font-medium text-gray-900">
+                          {cls.grade} - {cls.stream}
+                        </span>
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">{cls.teacherName}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {cls.teacherName}
+                      </td>
                       <td className="py-3 px-4 text-center text-sm text-gray-600">
                         {cls.totalSubmitted}/{cls.totalExpected}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          cls.complianceRate === 100
-                            ? 'bg-green-100 text-green-800'
-                            : cls.complianceRate >= 75
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span
+                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            cls.complianceRate === 100
+                              ? "bg-green-100 text-green-800"
+                              : cls.complianceRate >= 75
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
                           {cls.complianceRate}%
                         </span>
                       </td>
@@ -396,23 +485,40 @@ export default function CompliancePage() {
           {/* Daily Compliance Table */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Daily Breakdown</h2>
-              <p className="text-sm text-gray-500 mt-1">Report submission by date</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Daily Breakdown
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Report submission by date
+              </p>
             </div>
             <div className="overflow-x-auto max-h-[400px]">
               <table className="w-full">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Date</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Submitted</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Missing</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Rate</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                      Date
+                    </th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                      Submitted
+                    </th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                      Missing
+                    </th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                      Rate
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {dailyCompliance.map((day) => (
-                    <tr key={day.date} className={`hover:bg-gray-50 ${day.missing > 0 ? 'bg-red-50' : ''}`}>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{day.displayDate}</td>
+                    <tr
+                      key={day.date}
+                      className={`hover:bg-gray-50 ${day.missing > 0 ? "bg-red-50" : ""}`}
+                    >
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                        {day.displayDate}
+                      </td>
                       <td className="py-3 px-4 text-center text-sm text-gray-600">
                         {day.submitted}/{day.totalClasses}
                       </td>
@@ -426,13 +532,15 @@ export default function CompliancePage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          day.complianceRate === 100
-                            ? 'bg-green-100 text-green-800'
-                            : day.complianceRate >= 75
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span
+                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            day.complianceRate === 100
+                              ? "bg-green-100 text-green-800"
+                              : day.complianceRate >= 75
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
                           {day.complianceRate}%
                         </span>
                       </td>
@@ -447,19 +555,28 @@ export default function CompliancePage() {
         {/* Missing Reports Detail */}
         {classCompliance.some((c) => c.missingDates.length > 0) && (
           <div className="mt-8 bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">⚠️ Missing Reports Detail</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              ⚠️ Missing Reports Detail
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {classCompliance
                 .filter((c) => c.missingDates.length > 0)
                 .map((cls) => (
-                  <div key={cls.classId} className="bg-red-50 rounded-lg p-4 border border-red-200">
+                  <div
+                    key={cls.classId}
+                    className="bg-red-50 rounded-lg p-4 border border-red-200"
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-gray-900">{cls.grade} - {cls.stream}</span>
+                      <span className="font-medium text-gray-900">
+                        {cls.grade} - {cls.stream}
+                      </span>
                       <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
                         {cls.missingDates.length} missing
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{cls.teacherName}</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {cls.teacherName}
+                    </p>
                     <div className="flex flex-wrap gap-1">
                       {cls.missingDates.slice(0, 5).map((date) => (
                         <span
@@ -487,8 +604,18 @@ export default function CompliancePage() {
             href="/dashboard/headteacher"
             className="text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             Back to Dashboard
           </Link>

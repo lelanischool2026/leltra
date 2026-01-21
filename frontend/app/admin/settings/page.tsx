@@ -107,16 +107,14 @@ export default function AdminSettingsPage() {
     setSaving(true);
     setMessage(null);
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Extract only the fields that should be updated (exclude id)
+    const { id, ...updateData } = settings;
 
     const { error } = await supabase
       .from("school_settings")
       .update({
-        ...settings,
+        ...updateData,
         updated_at: new Date().toISOString(),
-        updated_by: session?.user.id,
       })
       .eq("id", settings.id);
 
