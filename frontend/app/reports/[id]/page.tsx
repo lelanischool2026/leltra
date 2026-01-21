@@ -51,10 +51,10 @@ export default function ReportDetailPage() {
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!report) return;
 
-    exportReportToPDF({
+    await exportReportToPDF({
       reportDate: report.report_date,
       className: `${report.classes.grade} - ${report.classes.stream}`,
       teacherName: report.profiles.full_name,

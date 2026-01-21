@@ -50,8 +50,27 @@ interface WeeklySummaryPDFData {
   }>;
 }
 
-// School logo as base64 (placeholder - can be replaced with actual logo)
-const SCHOOL_LOGO_BASE64 =
+// Helper function to load logo as base64 from URL
+async function loadLogoAsBase64(): Promise<string | null> {
+  try {
+    // Try to load the school logo from the public folder
+    const response = await fetch("/lslogo.png");
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// Fallback placeholder logo (small L icon)
+const FALLBACK_LOGO_BASE64 =
   "data:image/png;base64,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";
 
 // Lelani School Brand Colors - Red and Black theme
@@ -73,10 +92,12 @@ const COLORS = {
 };
 
 // Draw premium header with logo
+// Draw premium header with logo
 function drawPremiumHeader(
   doc: jsPDF,
   title: string,
   subtitle?: string,
+  logoBase64?: string | null,
 ): number {
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -88,9 +109,10 @@ function drawPremiumHeader(
   doc.setFillColor(...COLORS.secondary);
   doc.rect(0, 45, pageWidth, 3, "F");
 
-  // Add logo
+  // Add logo - use provided logo or fallback
+  const logoToUse = logoBase64 || FALLBACK_LOGO_BASE64;
   try {
-    doc.addImage(SCHOOL_LOGO_BASE64, "PNG", 15, 8, 28, 28);
+    doc.addImage(logoToUse, "PNG", 12, 6, 32, 32);
   } catch (e) {
     // If logo fails, continue without it
   }
@@ -130,7 +152,10 @@ function drawSectionHeader(doc: jsPDF, title: string, yPos: number): number {
 }
 
 // Export individual report to PDF - PREMIUM VERSION
-export function exportReportToPDF(data: ReportPDFData): void {
+export async function exportReportToPDF(data: ReportPDFData): Promise<void> {
+  // Load the school logo
+  const logoBase64 = await loadLogoAsBase64();
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -139,6 +164,7 @@ export function exportReportToPDF(data: ReportPDFData): void {
     doc,
     "Daily Class Report",
     format(new Date(data.reportDate), "EEEE, MMMM dd, yyyy"),
+    logoBase64,
   );
 
   // Report Info Box
@@ -411,7 +437,12 @@ export function exportReportToPDF(data: ReportPDFData): void {
 }
 
 // Export weekly summary to PDF - PREMIUM VERSION
-export function exportWeeklySummaryToPDF(data: WeeklySummaryPDFData): void {
+export async function exportWeeklySummaryToPDF(
+  data: WeeklySummaryPDFData,
+): Promise<void> {
+  // Load the school logo
+  const logoBase64 = await loadLogoAsBase64();
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -420,6 +451,7 @@ export function exportWeeklySummaryToPDF(data: WeeklySummaryPDFData): void {
     doc,
     "Weekly Summary Report",
     `${format(new Date(data.startDate), "MMMM dd")} - ${format(new Date(data.endDate), "MMMM dd, yyyy")}`,
+    logoBase64,
   );
 
   // Overview Stats Cards
@@ -567,7 +599,12 @@ interface MonthlySummaryPDFData {
   }>;
 }
 
-export function exportMonthlySummaryToPDF(data: MonthlySummaryPDFData): void {
+export async function exportMonthlySummaryToPDF(
+  data: MonthlySummaryPDFData,
+): Promise<void> {
+  // Load the school logo
+  const logoBase64 = await loadLogoAsBase64();
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -576,6 +613,7 @@ export function exportMonthlySummaryToPDF(data: MonthlySummaryPDFData): void {
     doc,
     "Monthly Summary Report",
     `${data.month} ${data.year}`,
+    logoBase64,
   );
 
   // Overview Stats Cards - 2 rows
