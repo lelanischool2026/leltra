@@ -150,17 +150,23 @@ export default function AdminUsersPage() {
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/delete-user?userId=${deletingUser.id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/admin/delete-user?userId=${deletingUser.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete user');
+        throw new Error(data.error || "Failed to delete user");
       }
 
-      setMessage({ type: "success", text: `User "${deletingUser.full_name}" deleted successfully!` });
+      setMessage({
+        type: "success",
+        text: `User "${deletingUser.full_name}" deleted successfully!`,
+      });
       setShowDeleteModal(false);
       setDeletingUser(null);
       loadData();
@@ -228,7 +234,10 @@ export default function AdminUsersPage() {
     }
 
     if (createFormData.password.length < 6) {
-      setMessage({ type: "error", text: "Password must be at least 6 characters" });
+      setMessage({
+        type: "error",
+        text: "Password must be at least 6 characters",
+      });
       return;
     }
 
@@ -236,10 +245,10 @@ export default function AdminUsersPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/admin/create-user', {
-        method: 'POST',
+      const response = await fetch("/api/admin/create-user", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: createFormData.email,
@@ -253,10 +262,13 @@ export default function AdminUsersPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create user');
+        throw new Error(data.error || "Failed to create user");
       }
 
-      setMessage({ type: "success", text: `User "${data.user.full_name}" created successfully!` });
+      setMessage({
+        type: "success",
+        text: `User "${data.user.full_name}" created successfully!`,
+      });
       setShowCreateModal(false);
       setCreateFormData({
         email: "",
@@ -607,7 +619,10 @@ export default function AdminUsersPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Assign to Class {formData.role !== "teacher" && <span className="text-gray-400">(Teachers only)</span>}
+                    Assign to Class{" "}
+                    {formData.role !== "teacher" && (
+                      <span className="text-gray-400">(Teachers only)</span>
+                    )}
                   </label>
                   <select
                     value={formData.class_id}
@@ -616,7 +631,9 @@ export default function AdminUsersPage() {
                     }
                     disabled={formData.role !== "teacher"}
                     className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent ${
-                      formData.role !== "teacher" ? "bg-gray-100 text-gray-500" : ""
+                      formData.role !== "teacher"
+                        ? "bg-gray-100 text-gray-500"
+                        : ""
                     }`}
                   >
                     <option value="">No class assigned</option>
@@ -628,7 +645,8 @@ export default function AdminUsersPage() {
                   </select>
                   {editingUser.assigned_class && (
                     <p className="mt-1 text-xs text-gray-500">
-                      Currently assigned: {editingUser.assigned_class.grade} - {editingUser.assigned_class.stream}
+                      Currently assigned: {editingUser.assigned_class.grade} -{" "}
+                      {editingUser.assigned_class.stream}
                     </p>
                   )}
                 </div>
@@ -680,7 +698,10 @@ export default function AdminUsersPage() {
                     type="text"
                     value={createFormData.full_name}
                     onChange={(e) =>
-                      setCreateFormData({ ...createFormData, full_name: e.target.value })
+                      setCreateFormData({
+                        ...createFormData,
+                        full_name: e.target.value,
+                      })
                     }
                     placeholder="e.g., Jane Doe"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
@@ -695,7 +716,10 @@ export default function AdminUsersPage() {
                     type="email"
                     value={createFormData.email}
                     onChange={(e) =>
-                      setCreateFormData({ ...createFormData, email: e.target.value })
+                      setCreateFormData({
+                        ...createFormData,
+                        email: e.target.value,
+                      })
                     }
                     placeholder="e.g., teacher@lelani.school"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
@@ -710,7 +734,10 @@ export default function AdminUsersPage() {
                     type="password"
                     value={createFormData.password}
                     onChange={(e) =>
-                      setCreateFormData({ ...createFormData, password: e.target.value })
+                      setCreateFormData({
+                        ...createFormData,
+                        password: e.target.value,
+                      })
                     }
                     placeholder="Minimum 6 characters"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
@@ -724,7 +751,10 @@ export default function AdminUsersPage() {
                   <select
                     value={createFormData.role}
                     onChange={(e) =>
-                      setCreateFormData({ ...createFormData, role: e.target.value })
+                      setCreateFormData({
+                        ...createFormData,
+                        role: e.target.value,
+                      })
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
                   >
@@ -743,7 +773,10 @@ export default function AdminUsersPage() {
                     <select
                       value={createFormData.class_id}
                       onChange={(e) =>
-                        setCreateFormData({ ...createFormData, class_id: e.target.value })
+                        setCreateFormData({
+                          ...createFormData,
+                          class_id: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
                     >
@@ -802,8 +835,18 @@ export default function AdminUsersPage() {
             <div className="relative inline-block w-full max-w-md p-6 my-8 text-left align-middle bg-white shadow-xl rounded-2xl transform transition-all">
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <svg
+                    className="w-6 h-6 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
                 </div>
                 <div>
@@ -818,10 +861,12 @@ export default function AdminUsersPage() {
 
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-gray-700">
-                  Are you sure you want to delete <strong>{deletingUser.full_name}</strong>?
+                  Are you sure you want to delete{" "}
+                  <strong>{deletingUser.full_name}</strong>?
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
-                  This will permanently remove the user account, their profile, and all class assignments.
+                  This will permanently remove the user account, their profile,
+                  and all class assignments.
                 </p>
               </div>
 

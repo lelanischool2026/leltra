@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
 
 // Create admin client with service role key
 const supabaseAdmin = createClient(
@@ -8,57 +8,54 @@ const supabaseAdmin = createClient(
   {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
-  }
+      persistSession: false,
+    },
+  },
 );
 
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const userId = searchParams.get("userId");
 
     if (!userId) {
       return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
+        { error: "User ID is required" },
+        { status: 400 },
       );
     }
 
     // Delete from teacher_classes first (if exists)
     await supabaseAdmin
-      .from('teacher_classes')
+      .from("teacher_classes")
       .delete()
-      .eq('teacher_id', userId);
+      .eq("teacher_id", userId);
 
     // Delete from profiles
     const { error: profileError } = await supabaseAdmin
-      .from('profiles')
+      .from("profiles")
       .delete()
-      .eq('id', userId);
+      .eq("id", userId);
 
     if (profileError) {
-      console.error('Profile delete error:', profileError);
+      console.error("Profile delete error:", profileError);
     }
 
     // Delete from auth.users
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    const { error: authError } =
+      await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (authError) {
-      console.error('Auth delete error:', authError);
-      return NextResponse.json(
-        { error: authError.message },
-        { status: 400 }
-      );
+      console.error("Auth delete error:", authError);
+      return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
-    console.error('Server error:', error);
+    console.error("Server error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
