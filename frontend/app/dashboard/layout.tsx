@@ -105,7 +105,7 @@ export default function DashboardLayout({
                 prefetch={true}
               >
                 <img
-                  src="/lslogo.png"
+                  src="/lslogo.webp"
                   alt="Lelani School"
                   className="h-8 w-8 sm:h-10 sm:w-10"
                 />

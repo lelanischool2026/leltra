@@ -54,7 +54,7 @@ interface WeeklySummaryPDFData {
 async function loadLogoAsBase64(): Promise<string | null> {
   try {
     // Try to load the school logo from the public folder
-    const response = await fetch("/lslogo.png");
+    const response = await fetch("/lslogo.webp");
     if (!response.ok) return null;
 
     const blob = await response.blob();

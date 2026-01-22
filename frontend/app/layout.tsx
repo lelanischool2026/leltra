@@ -18,17 +18,17 @@ export const metadata: Metadata = {
   description: "Daily reporting and analytics system for Lelani School",
   manifest: "/manifest.json",
   icons: {
-    icon: "/lslogo.png",
+    icon: "/lslogo.webp",
     apple: [
-      { url: "/icons/icon-152x152.png", sizes: "152x152" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+      { url: "/icons/icon-152x152.webp", sizes: "152x152" },
+      { url: "/icons/icon-192x192.webp", sizes: "192x192" },
     ],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "LSDRAS",
-    startupImage: "/lslogo.png",
+    startupImage: "/lslogo.webp",
   },
   formatDetection: {
     telephone: false,
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.webp" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>

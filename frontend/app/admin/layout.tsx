@@ -77,7 +77,7 @@ export default function AdminLayout({
             <div className="flex items-center">
               <Link href="/admin/users" className="flex items-center space-x-2">
                 <img
-                  src="/lslogo.png"
+                  src="/lslogo.webp"
                   alt="Lelani School Logo"
                   className="h-8 w-8 sm:h-10 sm:w-10"
                 />

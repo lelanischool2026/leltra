@@ -40,7 +40,7 @@ export default function LoginPage() {
         if (profileError) throw profileError;
 
         // Small delay to ensure session is fully established before navigation
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         // Determine redirect path
         let redirectPath = "/dashboard/teacher";
@@ -64,7 +64,7 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       // Ignore abort errors (caused by navigation)
-      if (error.name === 'AbortError') {
+      if (error.name === "AbortError") {
         return;
       }
       setError(error.message || "Failed to login");
@@ -83,7 +83,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12">
           <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
             <img
-              src="/lslogo.png"
+              src="/lslogo.webp"
               alt="Lelani School Logo"
               className="h-32 w-32 mx-auto drop-shadow-2xl"
             />
@@ -162,7 +162,7 @@ export default function LoginPage() {
           <div className="lg:hidden flex flex-col items-center mb-8">
             <div className="bg-gradient-to-br from-primary to-gray-800 p-6 rounded-2xl shadow-xl">
               <img
-                src="/lslogo.png"
+                src="/lslogo.webp"
                 alt="Lelani School Logo"
                 className="h-20 w-20"
               />
