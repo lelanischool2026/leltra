@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function AdminLayout({
   children,
@@ -76,10 +77,13 @@ export default function AdminLayout({
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link href="/admin/users" className="flex items-center space-x-2">
-                <img
+                <Image
                   src="/lslogo.webp"
                   alt="Lelani School Logo"
+                  width={40}
+                  height={40}
                   className="h-8 w-8 sm:h-10 sm:w-10"
+                  priority
                 />
                 <span className="text-white font-bold text-lg sm:text-xl">
                   LSDRAS Admin

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { clearSessionCache } from "@/lib/session-cache";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -82,10 +83,13 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12">
           <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
-            <img
+            <Image
               src="/lslogo.webp"
               alt="Lelani School Logo"
+              width={128}
+              height={128}
               className="h-32 w-32 mx-auto drop-shadow-2xl"
+              priority
             />
           </div>
 
@@ -161,10 +165,13 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
             <div className="bg-gradient-to-br from-primary to-gray-800 p-6 rounded-2xl shadow-xl">
-              <img
+              <Image
                 src="/lslogo.webp"
                 alt="Lelani School Logo"
+                width={80}
+                height={80}
                 className="h-20 w-20"
+                priority
               />
             </div>
             <h1 className="text-2xl font-bold text-primary mt-4">

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCachedSession } from "@/lib/session-cache";
 import Link from "next/link";
+import { TableSkeleton } from "@/components/loading";
 
 interface ReportWithDetails {
   id: string;
@@ -32,27 +34,10 @@ export default function ReportHistoryPage() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  useEffect(() => {
-    loadUserAndReports();
-  }, []);
-
-  useEffect(() => {
-    if (userRole) {
-      loadReports();
-    }
-  }, [filters, page, userRole]);
-
-  const loadUserAndReports = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      setUserRole(profile?.role || "");
+  const loadUserAndReports = useCallback(async () => {
+    const session = await getCachedSession();
+    if (session.profile) {
+      setUserRole(session.profile.role);
     }
 
     // Load available grades for filter
@@ -64,7 +49,17 @@ export default function ReportHistoryPage() {
       new Set(classes?.map((c) => c.grade) || []),
     );
     setGrades(uniqueGrades);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUserAndReports();
+  }, [loadUserAndReports]);
+
+  useEffect(() => {
+    if (userRole) {
+      loadReports();
+    }
+  }, [filters, page, userRole]);
 
   const loadReports = async () => {
     setLoading(true);
@@ -287,9 +282,7 @@ export default function ReportHistoryPage() {
 
         {/* Results */}
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
-          </div>
+          <TableSkeleton />
         ) : reports.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
             <p className="text-gray-500 text-lg">

@@ -6,6 +6,7 @@ import { getCachedSession, clearSessionCache } from "@/lib/session-cache";
 import { useRouter, usePathname } from "next/navigation";
 import { Profile } from "@/lib/types";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function DashboardLayout({
   children,
@@ -104,10 +105,13 @@ export default function DashboardLayout({
                 className="flex items-center gap-2"
                 prefetch={true}
               >
-                <img
+                <Image
                   src="/lslogo.webp"
                   alt="Lelani School"
+                  width={40}
+                  height={40}
                   className="h-8 w-8 sm:h-10 sm:w-10"
+                  priority
                 />
                 <h1 className="text-lg sm:text-xl font-bold">LSDRAS</h1>
               </Link>

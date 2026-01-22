@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCachedSession, getCachedData } from "@/lib/session-cache";
 import { useRouter } from "next/navigation";
 import { Class } from "@/lib/types";
+import { FormSkeleton } from "@/components/loading";
 
 export default function NewReportPage() {
   const [myClass, setMyClass] = useState<Class | null>(null);
@@ -31,48 +33,55 @@ export default function NewReportPage() {
     challenges: "",
   });
 
+  const loadTeacherClass = useCallback(async () => {
+    try {
+      const session = await getCachedSession();
+      if (!session.user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      // Use cached class data
+      const teacherClass = await getCachedData(
+        `teacher_class_${session.user.id}`,
+        async () => {
+          const { data } = await supabase
+            .from("teacher_classes")
+            .select("class_id, classes(*)")
+            .eq("teacher_id", session.user!.id)
+            .single();
+          return data;
+        },
+      );
+
+      if (teacherClass) {
+        setMyClass(teacherClass.classes as unknown as Class);
+      }
+    } catch (err) {
+      console.error("Error loading class:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     loadTeacherClass();
-  }, []);
-
-  const loadTeacherClass = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-
-    const { data: teacherClass } = await supabase
-      .from("teacher_classes")
-      .select("class_id, classes(*)")
-      .eq("teacher_id", user.id)
-      .single();
-
-    if (teacherClass) {
-      setMyClass(teacherClass.classes as unknown as Class);
-    }
-
-    setLoading(false);
-  };
+  }, [loadTeacherClass]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user || !myClass) return;
+    const session = await getCachedSession();
+    if (!session.user || !myClass) return;
 
     try {
       // Create the daily report
       const { data: report, error } = await supabase
         .from("daily_reports")
         .insert({
-          teacher_id: user.id,
+          teacher_id: session.user.id,
           class_id: myClass.id,
           ...formData,
           health_severity: formData.health_incident
@@ -92,7 +101,7 @@ export default function NewReportPage() {
         await supabase.from("incidents").insert({
           report_id: report.id,
           class_id: myClass.id,
-          teacher_id: user.id,
+          teacher_id: session.user.id,
           incident_date: formData.report_date,
           incident_type: "health",
           severity: formData.health_severity || "low",
@@ -108,7 +117,7 @@ export default function NewReportPage() {
         await supabase.from("incidents").insert({
           report_id: report.id,
           class_id: myClass.id,
-          teacher_id: user.id,
+          teacher_id: session.user.id,
           incident_date: formData.report_date,
           incident_type: "discipline",
           severity: formData.discipline_severity || "low",
@@ -127,7 +136,7 @@ export default function NewReportPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <FormSkeleton />;
   }
 
   if (!myClass) {
